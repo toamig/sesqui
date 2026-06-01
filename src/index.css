@@ -1,0 +1,49 @@
+/* App shell. Reads theme tokens (see theme.css) so the whole surface repaints
+   when the active skin changes. The atmospheric gradient and any film/paper
+   grain are painted by fixed pseudo-elements so they cover the viewport without
+   scrolling and never intercept clicks. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  position: relative;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  /* Respect device safe areas (notches, home indicator) on mobile. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Atmosphere: the skin's --bg-image (glows, washes, neon grid) over the base
+   colour. Fixed to the viewport, behind everything, click-through. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg-image);
+  background-color: var(--bg);
+}
+
+/* Texture overlay: grain or scanlines laid over the whole frame. Most skins set
+   --bg-texture: none, which renders nothing. Click-through. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: var(--bg-texture);
+  opacity: var(--bg-texture-opacity);
+}

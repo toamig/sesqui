@@ -1,0 +1,411 @@
+/* ============================================================================
+   Sesqui theme tokens
+   ----------------------------------------------------------------------------
+   Every colour, font, and decorative value the UI consumes lives here as a CSS
+   custom property. The base set in :root IS the "Midnight" skin. Each
+   [data-skin="..."] block below overrides only what it needs to repaint the
+   whole game (board, pieces, atmosphere, type, controls, rules diagrams).
+
+   The active skin is chosen by setting `data-skin` on <html>; an inline script
+   in index.html applies the saved choice before paint to avoid a flash.
+
+   No web fonts: skins use distinct system font stacks so the app stays fully
+   offline (the PWA precaches the shell) and installs cleanly via Capacitor.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* Reusable film/paper grain (fractal noise) for skins that opt into texture. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* ---- Typography -------------------------------------------------------- */
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino,
+    'Book Antiqua', Georgia, 'Times New Roman', serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --title-spacing: 0.08em;
+  --title-transform: none;
+  --title-weight: 600;
+
+  /* ---- Atmosphere -------------------------------------------------------- */
+  --bg: #15152a;
+  --bg-image: radial-gradient(125% 80% at 50% -8%, rgba(124, 92, 255, 0.22), transparent 58%);
+  --bg-texture: none;
+  --bg-texture-opacity: 1;
+
+  /* ---- Text -------------------------------------------------------------- */
+  --text: rgba(255, 255, 255, 0.9);
+  --text-muted: rgba(255, 255, 255, 0.58);
+  --text-strong: #ffffff;
+  --link: #b9a7ff;
+
+  /* ---- Accents ----------------------------------------------------------- */
+  --accent: #ffd54a;
+  --accent-strong: #f0b429;
+  --accent-contrast: #1a1a2e;
+  --accent-2: #7c5cff;
+  --accent-2-soft: #b9a7ff;
+
+  /* ---- Surfaces (cards, panels on the rules page) ------------------------ */
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.03);
+  --surface-border: rgba(255, 255, 255, 0.1);
+  --surface-radius: 12px;
+
+  /* ---- Board ------------------------------------------------------------- */
+  --board-max: 460px;
+  --board-bg: #20203a;
+  --board-frame-bg: transparent;
+  --frame-radius: 0px;
+  --frame-shadow: none;
+  --board-pad: 20px;
+  --board-gap: 2px;
+  --board-radius: 6px;
+  --board-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --cell-light: #3b3b5c;
+  --cell-dark: #343450;
+  --cell-radius: 0px;
+  --cell-hover: brightness(1.18);
+  --edge-size: 14px;
+
+  /* ---- Pieces ------------------------------------------------------------ */
+  --piece-size: 76%;
+  --piece-radius: 50%;
+  --piece-v-bg: radial-gradient(circle at 35% 30%, #4a4a5e, #0c0c14 70%);
+  --piece-v-border: 1px solid #000000;
+  --piece-v-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+  --piece-h-bg: radial-gradient(circle at 35% 30%, #ffffff, #cfcfda 75%);
+  --piece-h-border: 1px solid #b3b3c4;
+  --piece-h-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+  /* Supply readout dots reuse a flat fill of each piece colour. */
+  --dot-v: #0c0c14;
+  --dot-v-border: #555555;
+  --dot-h: #ececf2;
+  --dot-h-border: #b3b3c4;
+
+  /* ---- Goal edges (V = top/bottom, H = left/right) ----------------------- */
+  --edge-vert-bg: #14141f;
+  --edge-vert-text: #f2f2f7;
+  --edge-vert-shadow: none;
+  --edge-horiz-bg: #ececf2;
+  --edge-horiz-text: #1a1a2e;
+  --edge-horiz-shadow: none;
+
+  /* ---- Hints & states ---------------------------------------------------- */
+  --hint-place: rgba(74, 214, 160, 0.85);
+  --hint-move: rgba(240, 180, 41, 0.9);
+  --select-ring: rgba(255, 213, 74, 0.95);
+  --select-glow: rgba(255, 213, 74, 0.45);
+  --win-ring: rgba(255, 213, 74, 1);
+  --win-glow: rgba(255, 213, 74, 0.7);
+
+  /* ---- Controls ---------------------------------------------------------- */
+  --btn-bg: #2a2a44;
+  --btn-border: rgba(255, 255, 255, 0.15);
+  --btn-text: var(--text);
+  --btn-primary-bg: #7c5cff;
+  --btn-primary-border: #7c5cff;
+  --btn-primary-text: #ffffff;
+  --field-bg: #2a2a44;
+  --field-border: rgba(255, 255, 255, 0.15);
+  --control-radius: 8px;
+  --control-border-width: 1px;
+
+  /* ---- Status banner ----------------------------------------------------- */
+  --status-bg: rgba(255, 255, 255, 0.07);
+  --status-text: var(--text);
+  --status-win-bg: #ffd54a;
+  --status-win-text: #1a1a2e;
+}
+
+/* On wide viewports give the board more physical presence. */
+@media (min-width: 700px) {
+  :root {
+    --board-max: 540px;
+  }
+}
+
+/* ==========================================================================
+   WALNUT — a warm wooden tabletop. Slate-and-limestone board set in a wood
+   tray, carved onyx and marble stones, brass accents, paper grain.
+   ========================================================================== */
+:root[data-skin='walnut'] {
+  color-scheme: light;
+
+  --font-display: 'Hoefler Text', 'Baskerville Old Face', Baskerville,
+    'Palatino Linotype', Palatino, Georgia, serif;
+  --font-body: 'Gill Sans', 'Gill Sans MT', Calibri, 'Segoe UI', system-ui,
+    sans-serif;
+  --title-spacing: 0.02em;
+  --title-transform: none;
+  --title-weight: 600;
+
+  --bg: #d3bd98;
+  --bg-image:
+    repeating-linear-gradient(91deg, rgba(74, 48, 24, 0.05) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(89deg, rgba(110, 74, 40, 0.045) 0 14px, transparent 14px 26px),
+    linear-gradient(96deg, #c8ad82 0%, #dcc7a4 34%, #cbb088 68%, #c0a172 100%);
+  --bg-texture: var(--grain);
+  --bg-texture-opacity: 0.045;
+
+  --text: #3a2c1c;
+  --text-muted: rgba(58, 44, 28, 0.62);
+  --text-strong: #241a10;
+  --link: #5b6e4a;
+
+  --accent: #b5872f;
+  --accent-strong: #946d22;
+  --accent-contrast: #ffffff;
+  --accent-2: #5b6e4a;
+  --accent-2-soft: #7e9268;
+
+  --surface: rgba(255, 250, 240, 0.55);
+  --surface-2: rgba(255, 250, 240, 0.4);
+  --surface-border: rgba(58, 44, 28, 0.18);
+  --surface-radius: 12px;
+
+  --board-bg: #2f3a3f;
+  --board-frame-bg: linear-gradient(145deg, #7a5430 0%, #5a3c1f 48%, #6b4827 100%);
+  --frame-radius: 16px;
+  --frame-shadow: 0 22px 48px rgba(40, 26, 12, 0.5),
+    inset 0 1px 0 rgba(255, 225, 180, 0.3), inset 0 0 0 1px rgba(40, 24, 10, 0.4);
+  --board-pad: 22px;
+  --board-gap: 2px;
+  --board-radius: 5px;
+  --board-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.28), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --cell-light: #d2c9b2;
+  --cell-dark: #6f7d74;
+  --cell-radius: 0px;
+  --cell-hover: brightness(1.08);
+
+  --piece-v-bg: radial-gradient(circle at 38% 28%, #4d5258, #14171a 72%);
+  --piece-v-border: 1px solid #05070a;
+  --piece-v-shadow: 0 4px 7px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.18);
+  --piece-h-bg: radial-gradient(circle at 38% 28%, #fffdf8, #d8cfbd 78%);
+  --piece-h-border: 1px solid #b3a890;
+  --piece-h-shadow: 0 4px 7px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  --dot-v: #14171a;
+  --dot-v-border: #000000;
+  --dot-h: #f3eee2;
+  --dot-h-border: #b3a890;
+
+  --edge-vert-bg: #20242a;
+  --edge-vert-text: #e9d8b6;
+  --edge-vert-shadow: inset 0 0 0 1px rgba(181, 135, 47, 0.5);
+  --edge-horiz-bg: #efe7d6;
+  --edge-horiz-text: #3a2c1c;
+  --edge-horiz-shadow: inset 0 0 0 1px rgba(181, 135, 47, 0.5);
+
+  --hint-place: rgba(91, 110, 74, 0.92);
+  --hint-move: rgba(181, 135, 47, 0.95);
+  --select-ring: rgba(181, 135, 47, 0.95);
+  --select-glow: rgba(181, 135, 47, 0.5);
+  --win-ring: #b5872f;
+  --win-glow: rgba(181, 135, 47, 0.7);
+
+  --btn-bg: rgba(255, 250, 240, 0.72);
+  --btn-border: rgba(58, 44, 28, 0.28);
+  --btn-text: #3a2c1c;
+  --btn-primary-bg: #b5872f;
+  --btn-primary-border: #946d22;
+  --btn-primary-text: #ffffff;
+  --field-bg: rgba(255, 250, 240, 0.82);
+  --field-border: rgba(58, 44, 28, 0.28);
+  --control-radius: 8px;
+  --control-border-width: 1px;
+
+  --status-bg: rgba(58, 44, 28, 0.1);
+  --status-text: #3a2c1c;
+  --status-win-bg: #b5872f;
+  --status-win-text: #ffffff;
+}
+
+/* ==========================================================================
+   BAUHAUS — cream paper, primary-colour corner washes, a black grid board with
+   a hard offset shadow, flat outlined discs, geometric type set in caps.
+   ========================================================================== */
+:root[data-skin='bauhaus'] {
+  color-scheme: light;
+
+  --font-display: 'Futura', 'Century Gothic', 'Twentieth Century',
+    'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+  --font-body: 'Futura', 'Century Gothic', 'Avenir Next', 'Trebuchet MS',
+    system-ui, sans-serif;
+  --title-spacing: 0.16em;
+  --title-transform: uppercase;
+  --title-weight: 700;
+
+  --bg: #f4ece0;
+  --bg-image:
+    radial-gradient(38% 40% at 0% 0%, rgba(214, 69, 47, 0.16), transparent 70%),
+    radial-gradient(44% 44% at 100% 0%, rgba(44, 110, 156, 0.16), transparent 70%),
+    radial-gradient(48% 42% at 100% 100%, rgba(240, 180, 41, 0.2), transparent 72%);
+  --bg-texture: none;
+
+  --text: #1b1b1b;
+  --text-muted: rgba(27, 27, 27, 0.6);
+  --text-strong: #000000;
+  --link: #2c6e9c;
+
+  --accent: #d6452f;
+  --accent-strong: #b8351f;
+  --accent-contrast: #ffffff;
+  --accent-2: #2c6e9c;
+  --accent-2-soft: #6f9fc0;
+
+  --surface: #fbf7f0;
+  --surface-2: #f4ece0;
+  --surface-border: #111111;
+  --surface-radius: 0px;
+
+  --board-bg: #111111;
+  --board-frame-bg: transparent;
+  --frame-radius: 0px;
+  --frame-shadow: none;
+  --board-pad: 20px;
+  --board-gap: 3px;
+  --board-radius: 0px;
+  --board-shadow: 10px 10px 0 #111111;
+  --cell-light: #faf6ee;
+  --cell-dark: #e7ddca;
+  --cell-radius: 0px;
+  --cell-hover: brightness(0.95);
+
+  --piece-v-bg: #141414;
+  --piece-v-border: 2px solid #000000;
+  --piece-v-shadow: none;
+  --piece-h-bg: #fbf7f0;
+  --piece-h-border: 2px solid #111111;
+  --piece-h-shadow: none;
+  --dot-v: #141414;
+  --dot-v-border: #000000;
+  --dot-h: #fbf7f0;
+  --dot-h-border: #111111;
+
+  --edge-vert-bg: #d6452f;
+  --edge-vert-text: #ffffff;
+  --edge-vert-shadow: none;
+  --edge-horiz-bg: #2c6e9c;
+  --edge-horiz-text: #ffffff;
+  --edge-horiz-shadow: none;
+
+  --hint-place: #2c6e9c;
+  --hint-move: #d6452f;
+  --select-ring: #d6452f;
+  --select-glow: rgba(214, 69, 47, 0.4);
+  --win-ring: #f0b429;
+  --win-glow: rgba(240, 180, 41, 0.75);
+
+  --btn-bg: #fbf7f0;
+  --btn-border: #111111;
+  --btn-text: #111111;
+  --btn-primary-bg: #d6452f;
+  --btn-primary-border: #111111;
+  --btn-primary-text: #ffffff;
+  --field-bg: #fbf7f0;
+  --field-border: #111111;
+  --control-radius: 0px;
+  --control-border-width: 2px;
+
+  --status-bg: rgba(17, 17, 17, 0.07);
+  --status-text: #111111;
+  --status-win-bg: #f0b429;
+  --status-win-text: #111111;
+}
+
+/* ==========================================================================
+   SYNTHWAVE — deep indigo dusk, cyan horizon glow over a faint neon grid, a
+   black board ringed in neon, magenta and cyan glowing stones, condensed caps.
+   ========================================================================== */
+:root[data-skin='synthwave'] {
+  color-scheme: dark;
+
+  --font-display: 'Bahnschrift', 'DIN Condensed', 'Oswald', 'Arial Narrow',
+    'Impact', system-ui, sans-serif;
+  --font-body: 'Bahnschrift', 'Segoe UI', system-ui, sans-serif;
+  --title-spacing: 0.14em;
+  --title-transform: uppercase;
+  --title-weight: 700;
+
+  --bg: #0d0a1f;
+  --bg-image:
+    linear-gradient(transparent 74%, rgba(70, 230, 255, 0.1) 82%, rgba(70, 230, 255, 0.24) 88%, transparent 94%),
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(70, 230, 255, 0.06) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(255, 46, 160, 0.05) 39px 40px),
+    radial-gradient(120% 72% at 50% 2%, rgba(255, 46, 160, 0.2), transparent 60%),
+    linear-gradient(#0d0a1f, #140a27 60%, #1a0c33);
+  --bg-texture: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+  --bg-texture-opacity: 1;
+
+  --text: #eafcff;
+  --text-muted: rgba(180, 230, 255, 0.62);
+  --text-strong: #ffffff;
+  --link: #46e6ff;
+
+  --accent: #ff2ea0;
+  --accent-strong: #ff5cb8;
+  --accent-contrast: #0d0a1f;
+  --accent-2: #46e6ff;
+  --accent-2-soft: #9af0ff;
+
+  --surface: rgba(70, 230, 255, 0.06);
+  --surface-2: rgba(255, 46, 160, 0.05);
+  --surface-border: rgba(70, 230, 255, 0.32);
+  --surface-radius: 10px;
+
+  --board-bg: #2a1840;
+  --board-frame-bg: transparent;
+  --frame-radius: 0px;
+  --frame-shadow: none;
+  --board-pad: 20px;
+  --board-gap: 2px;
+  --board-radius: 8px;
+  --board-shadow: 0 0 0 1px rgba(70, 230, 255, 0.55), 0 0 22px rgba(255, 46, 160, 0.45),
+    0 0 46px rgba(70, 230, 255, 0.26);
+  --cell-light: #1e1338;
+  --cell-dark: #181030;
+  --cell-radius: 0px;
+  --cell-hover: brightness(1.5);
+
+  --piece-v-bg: radial-gradient(circle at 38% 32%, #ff7ac6, #c01277 75%);
+  --piece-v-border: 1px solid #ff2ea0;
+  --piece-v-shadow: 0 0 10px rgba(255, 46, 160, 0.8), 0 0 4px rgba(255, 46, 160, 0.9);
+  --piece-h-bg: radial-gradient(circle at 38% 32%, #b6f6ff, #16b6d8 78%);
+  --piece-h-border: 1px solid #46e6ff;
+  --piece-h-shadow: 0 0 10px rgba(70, 230, 255, 0.8), 0 0 4px rgba(70, 230, 255, 0.9);
+  --dot-v: #ff2ea0;
+  --dot-v-border: #ff8ace;
+  --dot-h: #46e6ff;
+  --dot-h-border: #b6f6ff;
+
+  --edge-vert-bg: #ff2ea0;
+  --edge-vert-text: #0d0a1f;
+  --edge-vert-shadow: 0 0 10px rgba(255, 46, 160, 0.9);
+  --edge-horiz-bg: #46e6ff;
+  --edge-horiz-text: #0d0a1f;
+  --edge-horiz-shadow: 0 0 10px rgba(70, 230, 255, 0.9);
+
+  --hint-place: rgba(70, 230, 255, 0.92);
+  --hint-move: rgba(255, 46, 160, 0.92);
+  --select-ring: rgba(70, 230, 255, 0.95);
+  --select-glow: rgba(70, 230, 255, 0.7);
+  --win-ring: #ff2ea0;
+  --win-glow: rgba(255, 46, 160, 0.9);
+
+  --btn-bg: rgba(70, 230, 255, 0.08);
+  --btn-border: rgba(70, 230, 255, 0.5);
+  --btn-text: #eafcff;
+  --btn-primary-bg: linear-gradient(120deg, #ff2ea0, #c01277);
+  --btn-primary-border: #ff2ea0;
+  --btn-primary-text: #ffffff;
+  --field-bg: rgba(20, 10, 39, 0.72);
+  --field-border: rgba(70, 230, 255, 0.42);
+  --control-radius: 6px;
+  --control-border-width: 1px;
+
+  --status-bg: rgba(70, 230, 255, 0.1);
+  --status-text: #eafcff;
+  --status-win-bg: #ff2ea0;
+  --status-win-text: #0d0a1f;
+}

@@ -1,0 +1,445 @@
+/* How-to-play page. Editorial layout that borrows the live board's palette so
+   the diagrams read identically to the game. The page is skinned through the
+   same theme tokens as the board: the local aliases below map the rules-page
+   vocabulary onto the global tokens, so every skin repaints this page too. */
+
+.rules-screen {
+  /* Alias the page's local names onto the global theme tokens. */
+  --serif: var(--font-display);
+  --gold: var(--accent);
+  --purple: var(--accent-2);
+  --purple-soft: var(--accent-2-soft);
+  --green: var(--hint-place);
+  --amber: var(--hint-move);
+  --ink: var(--text);
+  --muted: var(--text-muted);
+
+  min-height: 100%;
+  color: var(--ink);
+  /* Transparent so the skin's body atmosphere shows through, matching the game. */
+  background: transparent;
+}
+
+/* Sticky bar so Back stays reachable down a long page. A translucent wash of the
+   active skin's background keeps it legible over scrolling content. */
+.rules-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+.back-btn:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.back-btn:active {
+  transform: scale(0.96);
+}
+.back-btn span {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.topbar-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rules-content {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3.5rem;
+}
+
+/* Hero */
+.rules-hero {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  animation: rule-in 0.5s ease-out both;
+}
+.hero-eyebrow {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.hero-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: var(--title-weight);
+  font-size: clamp(2.1rem, 8vw, 3rem);
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  color: var(--text-strong);
+}
+.hero-lede {
+  margin: 0.85rem auto 0;
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Rule sections */
+.rule {
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--surface-border);
+  animation: rule-in 0.5s ease-out both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+.rule-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+.rule-num {
+  flex: none;
+  font-family: var(--serif);
+  font-size: 2.4rem;
+  font-weight: var(--title-weight);
+  line-height: 1;
+  color: var(--gold);
+  opacity: 0.85;
+  font-variant-numeric: lining-nums;
+}
+.rule-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--purple-soft);
+}
+.rule-title {
+  margin: 0.15rem 0 0;
+  font-family: var(--serif);
+  font-weight: var(--title-weight);
+  font-size: 1.55rem;
+  line-height: 1.15;
+  color: var(--text-strong);
+}
+.rule-body p {
+  margin: 0 0 0.5rem;
+  line-height: 1.65;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+
+/* Diagram figure */
+.demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1.25rem auto 0.25rem;
+}
+.demo figcaption {
+  max-width: 22rem;
+  text-align: center;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.demo figcaption strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.demo-pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem 2rem;
+  margin-top: 0.5rem;
+}
+.demo-pair .demo {
+  flex: 1 1 220px;
+  max-width: 280px;
+  margin-top: 0.75rem;
+}
+
+.callout {
+  margin-top: 1.4rem !important;
+  padding: 0.85rem 1.05rem;
+  background: color-mix(in srgb, var(--purple) 14%, transparent);
+  border-left: 3px solid var(--purple);
+  border-radius: 6px;
+  font-size: 0.92rem !important;
+  color: var(--ink) !important;
+}
+.callout em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* Flavor note */
+.flavor {
+  margin-top: 2.5rem;
+  padding: 1.4rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: var(--surface-radius);
+  animation: rule-in 0.5s ease-out both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+.flavor h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  font-weight: var(--title-weight);
+  color: var(--gold);
+}
+.flavor p {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.flavor em {
+  font-style: italic;
+  color: var(--purple-soft);
+}
+
+/* Call to action */
+.rules-cta {
+  margin-top: 2.75rem;
+  text-align: center;
+}
+.cta-btn {
+  display: inline-block;
+  min-width: 16rem;
+  padding: 0.95rem 2rem;
+  font-family: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--btn-primary-text);
+  background: var(--btn-primary-bg);
+  border: var(--control-border-width) solid var(--btn-primary-border);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--btn-primary-border) 42%, transparent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--btn-primary-border) 52%, transparent);
+  filter: brightness(1.06);
+}
+.cta-btn:active {
+  transform: translateY(0);
+}
+
+@keyframes rule-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Mini board diagrams -------------------------------------------------- */
+.mini-frame {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+  padding: 9px;
+}
+.mini-grid {
+  --cell: 32px;
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--cell));
+  gap: 3px;
+  padding: 3px;
+  background: var(--board-bg);
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.m-cell {
+  position: relative;
+  width: var(--cell);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+.m-light {
+  background: var(--cell-light);
+}
+.m-dark {
+  background: var(--cell-dark);
+}
+
+.m-piece {
+  width: 74%;
+  height: 74%;
+  border-radius: 50%;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
+}
+.m-piece-v {
+  background: var(--piece-v-bg);
+  border: var(--piece-v-border);
+}
+.m-piece-h {
+  background: var(--piece-h-bg);
+  border: var(--piece-h-border);
+}
+
+/* Teaching marks */
+.m-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.m-mark-ok {
+  width: 32%;
+  height: 32%;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 7px var(--green);
+}
+.m-mark-path {
+  width: 24%;
+  height: 24%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+.m-mark-dest {
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  border: 3px solid var(--amber);
+  box-sizing: border-box;
+}
+.m-mark-no {
+  width: 52%;
+  height: 52%;
+}
+.m-mark-no::before,
+.m-mark-no::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  border-radius: 2px;
+  background: rgba(255, 120, 134, 0.75);
+}
+.m-mark-no::before {
+  transform: translateY(-50%) rotate(45deg);
+}
+.m-mark-no::after {
+  transform: translateY(-50%) rotate(-45deg);
+}
+.m-mark-win {
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  transform: none;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 3px var(--win-ring), 0 0 9px var(--win-glow);
+}
+
+/* Goal edge cues */
+.m-goal {
+  position: absolute;
+  border-radius: 3px;
+}
+.m-goal-n,
+.m-goal-s {
+  left: 9px;
+  right: 9px;
+  height: 5px;
+  background: var(--edge-vert-bg);
+}
+.m-goal-n {
+  top: 1px;
+}
+.m-goal-s {
+  bottom: 1px;
+}
+.m-goal-w,
+.m-goal-e {
+  top: 9px;
+  bottom: 9px;
+  width: 5px;
+  background: var(--edge-horiz-bg);
+}
+.m-goal-w {
+  left: 1px;
+}
+.m-goal-e {
+  right: 1px;
+}
+
+/* Overlays sized to the grid (frame padding = 9px). */
+.m-arrow,
+.m-forbidden {
+  position: absolute;
+  inset: 9px;
+  pointer-events: none;
+}
+.m-arrow line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.m-forbidden line {
+  fill: none;
+  stroke: #ff5a6e;
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+}
+
+/* Respect reduced-motion: reveal everything statically. */
+@media (prefers-reduced-motion: reduce) {
+  .rules-hero,
+  .rule,
+  .flavor {
+    animation: none !important;
+  }
+  .back-btn,
+  .cta-btn {
+    transition: none !important;
+  }
+}

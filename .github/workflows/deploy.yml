@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+# Builds the embed variant (base /sesqui/, no service worker) and publishes it
+# to GitHub Pages. Because this is a project repo under the toamig.github.io
+# user/org with a custom apex domain, Pages serves it at
+# https://migueltechlead.pt/sesqui/ -- the same path the portfolio card links to.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # SESQUI_EMBED=1 -> base '/sesqui/', PWA/service-worker disabled. Supabase
+      # keys (if set as repo secrets) flow in here to enable cross-device play.
+      - run: npm run build
+        env:
+          SESQUI_EMBED: '1'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

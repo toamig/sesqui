@@ -1,0 +1,357 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Board } from '../components/Board'
+import { CELL_COUNT } from '../game/board'
+import {
+  applyAction,
+  createInitialState,
+  isOpening,
+  legalMoveTargets,
+  legalPlacementTargets,
+  MAX_PIECES,
+} from '../game/rules'
+import type { Action, Board as BoardModel, GameState, Player } from '../game/types'
+import { Difficulty } from '../game/ai'
+import { SkinPicker } from '../components/SkinPicker'
+import type { SkinId } from '../theme'
+
+type Mode = 'pvp' | 'ai' | 'watch'
+
+interface GameScreenProps {
+  /** The active visual theme and a setter, lifted to App for persistence. */
+  skin: SkinId
+  onSkinChange: (id: SkinId) => void
+  /** Open the standalone rules / how-to-play page. */
+  onShowRules: () => void
+  /** Open the online lobby (create / join a room). */
+  onPlayOnline: () => void
+}
+
+const playerName = (p: Player): string =>
+  p === 'V' ? 'Vertical (Black)' : 'Horizontal (White)'
+
+const engineLabel = (d: Difficulty): string =>
+  d === Difficulty.Easy
+    ? 'Random'
+    : d === Difficulty.Medium
+      ? 'Heuristic'
+      : d === Difficulty.Hard
+        ? 'Alpha-Beta'
+        : 'Monte Carlo (MCTS)'
+
+const countPieces = (board: BoardModel, player: Player): number => {
+  let n = 0
+  for (let i = 0; i < CELL_COUNT; i++) if (board[i] === player) n++
+  return n
+}
+
+export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: GameScreenProps) {
+  const [state, setState] = useState<GameState>(createInitialState)
+  const [mode, setMode] = useState<Mode>('pvp')
+  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Medium)
+  // Watch mode (AI vs AI): the engine driving each side. Defaults pit the two
+  // strong engines against each other so the matchup is visible immediately.
+  const [vEngine, setVEngine] = useState<Difficulty>(Difficulty.Hard)
+  const [hEngine, setHEngine] = useState<Difficulty>(Difficulty.Expert)
+  const [humanColor, setHumanColor] = useState<Player>('V')
+  const [selected, setSelected] = useState<number | null>(null)
+  const [history, setHistory] = useState<GameState[]>([])
+  // The last atomic action drives the arrival animation for the piece it placed
+  // or moved; cleared on reset/undo so nothing replays.
+  const [lastAction, setLastAction] = useState<Action | null>(null)
+
+  const workerRef = useRef<Worker | null>(null)
+  const reqIdRef = useRef(0)
+  const thinkingRef = useRef(false)
+
+  // The AI search runs in a Web Worker so a long think (Hard can take ~1.5s)
+  // never freezes the board. Replies are matched by id; any reply whose id was
+  // superseded by a reset, undo, or newer request is discarded.
+  useEffect(() => {
+    const worker = new Worker(new URL('../game/ai/aiWorker.ts', import.meta.url), {
+      type: 'module',
+    })
+    workerRef.current = worker
+    worker.onmessage = (e: MessageEvent<{ id: number; action: Action | null }>) => {
+      if (e.data.id !== reqIdRef.current) return
+      thinkingRef.current = false
+      const { action } = e.data
+      if (action) {
+        setLastAction(action)
+        setState((prev) => applyAction(prev, action))
+      }
+    }
+    return () => {
+      worker.terminate()
+      workerRef.current = null
+    }
+  }, [])
+
+  const humanCanAct = mode === 'pvp' || (mode === 'ai' && state.current === humanColor)
+  const aiToMove =
+    state.winner === null &&
+    (mode === 'ai' ? state.current !== humanColor : mode === 'watch')
+  // Which engine moves now: per-side in watch mode, otherwise the AI difficulty.
+  const currentEngine: Difficulty =
+    mode === 'watch' ? (state.current === 'V' ? vEngine : hEngine) : difficulty
+  const canPlace = state.winner === null && humanCanAct && state.placementsLeft > 0
+  const canMove = state.winner === null && humanCanAct && state.movesLeft > 0
+
+  // Drive the computer's turn one action at a time by posting the current state
+  // to the worker. The ref guard keeps a single request in flight under React
+  // StrictMode's double-invoked effects.
+  useEffect(() => {
+    if (!aiToMove || thinkingRef.current) return
+    const worker = workerRef.current
+    if (!worker) return
+    thinkingRef.current = true
+    reqIdRef.current += 1
+    worker.postMessage({ id: reqIdRef.current, difficulty: currentEngine, state })
+  }, [aiToMove, state, currentEngine])
+
+  const allPlaceTargets = useMemo(
+    () => (canPlace ? legalPlacementTargets(state) : []),
+    [canPlace, state],
+  )
+  const moveTargets = useMemo(
+    () => (selected !== null ? legalMoveTargets(state, selected) : []),
+    [selected, state],
+  )
+  const placeTargets = selected === null ? allPlaceTargets : []
+
+  const commit = (action: Action) => {
+    setHistory((h) => [...h, state])
+    setState(applyAction(state, action))
+    setSelected(null)
+    setLastAction(action)
+  }
+
+  const handleCellClick = (i: number) => {
+    if (state.winner !== null || !humanCanAct) return
+    const cell = state.board[i]
+
+    if (selected !== null) {
+      if (i === selected) {
+        // Click the highlighted piece again to cancel the move selection. The
+        // green placement hints reappear, so you can choose to place first.
+        setSelected(null)
+      } else if (moveTargets.includes(i)) {
+        commit({ kind: 'move', from: selected, to: i })
+      } else if (cell === state.current && canMove) {
+        setSelected(i)
+      } else {
+        setSelected(null)
+      }
+      return
+    }
+
+    if (cell === state.current && canMove) {
+      setSelected(i)
+    } else if (canPlace && allPlaceTargets.includes(i)) {
+      commit({ kind: 'place', to: i })
+    }
+  }
+
+  const resetWith = (
+    next: Partial<{
+      mode: Mode
+      difficulty: Difficulty
+      humanColor: Player
+      vEngine: Difficulty
+      hEngine: Difficulty
+    }>,
+  ) => {
+    if (next.mode !== undefined) setMode(next.mode)
+    if (next.difficulty !== undefined) setDifficulty(next.difficulty)
+    if (next.humanColor !== undefined) setHumanColor(next.humanColor)
+    if (next.vEngine !== undefined) setVEngine(next.vEngine)
+    if (next.hEngine !== undefined) setHEngine(next.hEngine)
+    setState(createInitialState())
+    setHistory([])
+    setSelected(null)
+    setLastAction(null)
+    reqIdRef.current += 1 // discard any AI reply still in flight
+    thinkingRef.current = false
+  }
+
+  const newGame = () => resetWith({})
+
+  const undo = () => {
+    if (history.length === 0) return
+    setState(history[history.length - 1])
+    setHistory((h) => h.slice(0, -1))
+    setSelected(null)
+    setLastAction(null)
+    reqIdRef.current += 1
+    thinkingRef.current = false
+  }
+
+  const statusText = (): string => {
+    if (state.winner !== null) {
+      return state.winner === 'draw' ? 'Draw.' : `${playerName(state.winner)} wins!`
+    }
+    if (aiToMove) {
+      return mode === 'watch'
+        ? `${playerName(state.current)} [${engineLabel(currentEngine)}] is thinking`
+        : 'Computer is thinking'
+    }
+    const who = playerName(state.current)
+    if (isOpening(state.turn)) {
+      if (state.turn === 1) return `${who}: place your first piece on any square.`
+      const n = state.placementsLeft
+      return `${who}: place ${n} more ${n === 1 ? 'piece' : 'pieces'} on any squares.`
+    }
+    const parts: string[] = []
+    if (state.placementsLeft > 0) parts.push('place next to your colour')
+    if (state.movesLeft > 0) parts.push('move like a queen')
+    if (parts.length === 2) return `${who}: ${parts[0]} and ${parts[1]}.`
+    return `${who}: ${parts[0]}.`
+  }
+
+  const blackLeft = MAX_PIECES - countPieces(state.board, 'V')
+  const whiteLeft = MAX_PIECES - countPieces(state.board, 'H')
+
+  return (
+    <main className="game-screen">
+      <header className="game-header">
+        <h1>Sesqui</h1>
+        <p className="subtitle">
+          Black links top to bottom. White links left to right.
+        </p>
+        <div className="header-links">
+          <button type="button" className="rules-link link-help" onClick={onShowRules}>
+            How to play
+          </button>
+          <button type="button" className="rules-link link-online" onClick={onPlayOnline}>
+            Play online
+          </button>
+        </div>
+      </header>
+
+      <div className="status-slot">
+        <div className={`status ${state.winner !== null ? 'status-win' : ''}`}>
+          {statusText()}
+          {aiToMove && (
+            <span className="thinking-dots" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+          )}
+        </div>
+      </div>
+
+      <Board
+        board={state.board}
+        selected={selected}
+        placeTargets={placeTargets}
+        moveTargets={moveTargets}
+        winningLine={state.winningLine}
+        lastAction={lastAction}
+        disabled={state.winner !== null || aiToMove}
+        onCellClick={handleCellClick}
+      />
+
+      <div className="supply">
+        <span className="supply-item">
+          <span className="dot dot-v" /> {blackLeft}
+        </span>
+        <span className="supply-item">
+          <span className="dot dot-h" /> {whiteLeft}
+        </span>
+      </div>
+
+      <div className="controls">
+        <div className="control-group">
+          <label htmlFor="mode">Opponent</label>
+          <select
+            id="mode"
+            value={mode}
+            onChange={(e) => resetWith({ mode: e.target.value as Mode })}
+          >
+            <option value="pvp">2 Players</option>
+            <option value="ai">vs Computer</option>
+            <option value="watch">Watch (AI vs AI)</option>
+          </select>
+        </div>
+
+        {mode === 'ai' && (
+          <>
+            <div className="control-group">
+              <label htmlFor="algorithm">Algorithm</label>
+              <select
+                id="algorithm"
+                value={difficulty}
+                onChange={(e) => resetWith({ difficulty: e.target.value as Difficulty })}
+              >
+                <option value={Difficulty.Easy}>Random</option>
+                <option value={Difficulty.Medium}>Heuristic</option>
+                <option value={Difficulty.Hard}>Alpha-Beta</option>
+                <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+              </select>
+            </div>
+            <div className="control-group">
+              <label htmlFor="side">You play</label>
+              <select
+                id="side"
+                value={humanColor}
+                onChange={(e) => resetWith({ humanColor: e.target.value as Player })}
+              >
+                <option value="V">Black (first)</option>
+                <option value="H">White (second)</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {mode === 'watch' && (
+          <>
+            <div className="control-group">
+              <label htmlFor="v-engine">Black (V)</label>
+              <select
+                id="v-engine"
+                value={vEngine}
+                onChange={(e) => resetWith({ vEngine: e.target.value as Difficulty })}
+              >
+                <option value={Difficulty.Easy}>Random</option>
+                <option value={Difficulty.Medium}>Heuristic</option>
+                <option value={Difficulty.Hard}>Alpha-Beta</option>
+                <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+              </select>
+            </div>
+            <div className="control-group">
+              <label htmlFor="h-engine">White (H)</label>
+              <select
+                id="h-engine"
+                value={hEngine}
+                onChange={(e) => resetWith({ hEngine: e.target.value as Difficulty })}
+              >
+                <option value={Difficulty.Easy}>Random</option>
+                <option value={Difficulty.Medium}>Heuristic</option>
+                <option value={Difficulty.Hard}>Alpha-Beta</option>
+                <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        <div className="buttons">
+          <button type="button" className="btn btn-primary" onClick={newGame}>
+            New Game
+          </button>
+          {mode === 'pvp' && (
+            <button
+              type="button"
+              className="btn"
+              onClick={undo}
+              disabled={history.length === 0}
+            >
+              Undo
+            </button>
+          )}
+        </div>
+
+        <SkinPicker value={skin} onChange={onSkinChange} />
+      </div>
+    </main>
+  )
+}

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#15152a" />
+    <!-- Home-screen install (iOS Safari + Android Chrome). iOS ignores the
+         manifest icons and uses this PNG apple-touch-icon for the home screen.
+         status-bar-style "default" keeps page content below the status bar so
+         nothing hides under the notch, and the dark bar text stays legible on
+         the two light skins (Walnut, Bauhaus). -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Sesqui" />
+    <title>Sesqui</title>
+    <meta
+      name="description"
+      content="A two-player connection strategy game on an 8x8 board. Black links top to bottom, White links left to right. Play a friend, take on four tiers of AI, or watch the engines battle it out."
+    />
+    <!-- Social link preview (Open Graph + Twitter). Crawlers need absolute
+         URLs, so these point at the deployed /sesqui/ path. og.jpg is a
+         1200x630 share card shipped alongside the app. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sesqui" />
+    <meta property="og:title" content="Sesqui: a connection strategy game" />
+    <meta
+      property="og:description"
+      content="Black links top to bottom, White links left to right. Play a friend, take on four tiers of AI, or watch the engines battle it out."
+    />
+    <meta property="og:url" content="https://migueltechlead.pt/sesqui/" />
+    <meta property="og:image" content="https://migueltechlead.pt/sesqui/og.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sesqui board game" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sesqui: a connection strategy game" />
+    <meta
+      name="twitter:description"
+      content="Black links top to bottom, White links left to right. Play a friend, take on four tiers of AI, or watch the engines battle it out."
+    />
+    <meta name="twitter:image" content="https://migueltechlead.pt/sesqui/og.jpg" />
+    <!-- Apply the saved skin before first paint so there is no flash of the
+         default theme. Mirrors theme.ts / theme.css; keep the ids in sync. -->
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem('sesqui-skin')
+          if (!s) return
+          document.documentElement.setAttribute('data-skin', s)
+          var c = {
+            midnight: '#15152a',
+            walnut: '#cbb088',
+            bauhaus: '#f4ece0',
+            synthwave: '#0d0a1f',
+          }[s]
+          if (c) {
+            var m = document.querySelector('meta[name="theme-color"]')
+            if (m) m.setAttribute('content', c)
+          }
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

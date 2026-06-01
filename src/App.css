@@ -1,0 +1,736 @@
+.game-screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1rem 2.5rem;
+  text-align: center;
+}
+
+.game-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--title-weight);
+  font-size: 2.6rem;
+  letter-spacing: var(--title-spacing);
+  text-transform: var(--title-transform);
+  color: var(--text-strong);
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Quiet text link under the title that opens the rules page. */
+.rules-link {
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 0.15rem 0.2rem;
+  border-bottom: 1px solid transparent;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.rules-link::before {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.72em;
+  font-weight: 700;
+  vertical-align: 0.06em;
+}
+
+/* Per-link glyphs so the two header links read distinctly. */
+.link-help::before {
+  content: '?';
+}
+
+.link-online::before {
+  /* Two-headed link/connection glyph fits the "connect with a friend" idea. */
+  content: '\21C4';
+  font-size: 0.82em;
+}
+
+.rules-link:hover {
+  color: var(--accent-2-soft);
+  border-color: color-mix(in srgb, var(--accent-2-soft) 55%, transparent);
+}
+
+/* Row holding the How-to-play + Play-online header links. */
+.header-links {
+  display: flex;
+  gap: 1.1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Status banner.
+   The copy ranges from a couple of words ("Draw.") to a full two-line
+   instruction, so the pill itself changes height as the game goes on. To stop
+   that from shoving the board up and down on every turn, the pill lives inside
+   a fixed-height .status-slot that always reserves two lines: the pill grows
+   and shrinks *within* the slot while the board below stays anchored. */
+.status-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* Height of the tallest (two-line) pill:
+     2 x 1.3em line-height x 0.95rem + 2 x 0.55rem padding ~= 3.6rem. */
+  min-height: 3.6rem;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.2em;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  background: var(--status-bg);
+  color: var(--status-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  text-wrap: balance;
+  max-width: 92vw;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.status-win {
+  background: var(--status-win-bg);
+  color: var(--status-win-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  animation: status-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes status-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Thinking indicator: three dots that bounce in sequence while an engine runs. */
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.thinking-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: dot-bounce 1.1s ease-in-out infinite;
+}
+
+.thinking-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.thinking-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes dot-bounce {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  35% {
+    transform: translateY(-4px);
+    opacity: 0.9;
+  }
+}
+
+/* Board frame with edge cues for each player's goal. The frame can carry its own
+   surface (e.g. a wooden tray) via theme tokens; transparent by default. */
+.board-frame {
+  position: relative;
+  padding: var(--board-pad);
+  background: var(--board-frame-bg);
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-shadow);
+  animation: board-in 0.5s ease-out both;
+}
+
+@keyframes board-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.edge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+}
+
+/* Vertical (black) connects North/South */
+.edge-n,
+.edge-s {
+  left: var(--board-pad);
+  right: var(--board-pad);
+  height: var(--edge-size);
+  background: var(--edge-vert-bg);
+  color: var(--edge-vert-text);
+  box-shadow: var(--edge-vert-shadow);
+}
+.edge-n {
+  top: 0;
+}
+.edge-s {
+  bottom: 0;
+}
+
+/* Horizontal (white) connects West/East */
+.edge-w,
+.edge-e {
+  top: var(--board-pad);
+  bottom: var(--board-pad);
+  width: var(--edge-size);
+  background: var(--edge-horiz-bg);
+  color: var(--edge-horiz-text);
+  box-shadow: var(--edge-horiz-shadow);
+}
+.edge-w {
+  left: 0;
+}
+.edge-e {
+  right: 0;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--board-gap);
+  width: min(92vw, var(--board-max));
+  aspect-ratio: 1 / 1;
+  background: var(--board-bg);
+  border-radius: var(--board-radius);
+  box-shadow: var(--board-shadow);
+  overflow: hidden;
+  /* Query container so a piece can express its slide distance in cell-pitch
+     units: one pitch = content width / 8 (12.5cqw) + its share of the grid gap.
+     The board has a definite width, so inline-size containment can't collapse it
+     (a width-less wrapper would shrink to 0 and make cqw resolve to 0). */
+  container-type: inline-size;
+}
+
+.cell {
+  position: relative;
+  border: none;
+  margin: 0;
+  padding: 0;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--cell-radius);
+  cursor: pointer;
+  transition: filter 0.12s ease, box-shadow 0.18s ease;
+}
+
+.cell-light {
+  background: var(--cell-light);
+}
+.cell-dark {
+  background: var(--cell-dark);
+}
+
+.cell:not(:disabled):hover {
+  filter: var(--cell-hover);
+}
+.cell:disabled {
+  cursor: default;
+}
+
+/* Pieces */
+.piece {
+  width: var(--piece-size);
+  height: var(--piece-size);
+  border-radius: var(--piece-radius);
+}
+
+.piece-v {
+  background: var(--piece-v-bg);
+  border: var(--piece-v-border);
+  box-shadow: var(--piece-v-shadow);
+}
+
+.piece-h {
+  background: var(--piece-h-bg);
+  border: var(--piece-h-border);
+  box-shadow: var(--piece-h-shadow);
+}
+
+/* Entrance animations for the piece that just arrived. A queen-move slides in
+   from its origin; the offset --dx/--dy is in cell-pitch units, where one pitch
+   is the board width over 8 (12.5cqw) plus its share of the grid gap. A
+   placement pops into being. Only the freshly-mounted destination piece carries
+   these classes, so resting pieces never replay. */
+.piece-move-in {
+  animation: piece-slide 0.26s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  will-change: transform;
+}
+
+@keyframes piece-slide {
+  from {
+    transform: translate(
+      calc(var(--dx) * (12.5cqw + var(--board-gap) / 8)),
+      calc(var(--dy) * (12.5cqw + var(--board-gap) / 8))
+    );
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+.piece-place-in {
+  animation: piece-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes piece-pop {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Hints for legal targets */
+.hint {
+  position: absolute;
+  pointer-events: none;
+}
+
+.hint-place {
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: var(--hint-place);
+  animation: hint-in 0.2s ease-out both, hint-breathe 1.8s ease-in-out 0.2s infinite;
+}
+
+.hint-move {
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  border: 3px solid var(--hint-move);
+  box-sizing: border-box;
+  animation: hint-in 0.2s ease-out both, hint-breathe 1.8s ease-in-out 0.2s infinite;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hint-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+.cell-place,
+.cell-move {
+  filter: brightness(1.1);
+}
+
+/* While a piece is animating in, raise its cell so the moving piece paints over
+   the cells it slides across. Sibling cells later in the DOM would otherwise
+   cover it with their opaque background, making a long move dip "underground".
+   Only one cell (the last action's destination) ever carries this at a time. */
+.cell-arriving {
+  z-index: 5;
+}
+
+.cell-selected {
+  box-shadow: inset 0 0 0 3px var(--select-ring);
+  z-index: 1;
+  animation: select-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes select-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 3px var(--select-ring);
+  }
+  50% {
+    box-shadow: inset 0 0 0 3px var(--select-glow), 0 0 10px var(--select-glow);
+  }
+}
+
+/* Winning line: each cell reveals in path order (staggered by --win-order), then
+   settles into a slow shimmer so the connection keeps glowing. */
+.cell-win {
+  z-index: 1;
+  animation: win-reveal 0.32s ease-out both,
+    win-shimmer 1.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--win-order, 0) * 70ms),
+    calc(var(--win-order, 0) * 70ms + 0.32s);
+}
+
+@keyframes win-reveal {
+  from {
+    box-shadow: inset 0 0 0 0 transparent;
+    filter: brightness(1);
+  }
+  to {
+    box-shadow: inset 0 0 0 3px var(--win-ring);
+    filter: brightness(1.18);
+  }
+}
+
+@keyframes win-shimmer {
+  from {
+    box-shadow: inset 0 0 0 3px var(--win-ring), 0 0 2px var(--win-glow);
+    filter: brightness(1.05);
+  }
+  to {
+    box-shadow: inset 0 0 0 3px var(--win-ring), 0 0 16px var(--win-glow);
+    filter: brightness(1.45);
+  }
+}
+
+/* Supply readout */
+.supply {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.supply-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+.dot-v {
+  background: var(--dot-v);
+  border: 1px solid var(--dot-v-border);
+}
+.dot-h {
+  background: var(--dot-h);
+  border: 1px solid var(--dot-h-border);
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.control-group label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.control-group select {
+  background: var(--field-bg);
+  color: var(--text);
+  font-family: inherit;
+  border: var(--control-border-width) solid var(--field-border);
+  border-radius: var(--control-radius);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-family: inherit;
+  border: var(--control-border-width) solid var(--btn-border);
+  border-radius: var(--control-radius);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:not(:disabled):hover {
+  filter: brightness(1.2);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-border);
+  color: var(--btn-primary-text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Respect users who ask for less motion: drop the decorative animation and show
+   final states directly. Pieces still appear; they just don't slide or pop. */
+@media (prefers-reduced-motion: reduce) {
+  .board-frame,
+  .piece-move-in,
+  .piece-place-in,
+  .hint-place,
+  .hint-move,
+  .cell-selected,
+  .cell-win,
+  .status-win,
+  .thinking-dots i {
+    animation: none !important;
+  }
+
+  .piece-move-in,
+  .piece-place-in {
+    transform: none !important;
+  }
+
+  /* The gold ring normally arrives via the reveal animation; restore it static. */
+  .cell-win {
+    box-shadow: inset 0 0 0 3px var(--win-ring);
+  }
+}
+
+/* ============================================================= *
+ * Online play: lobby, invite panel, room badge                  *
+ * ============================================================= */
+
+.online-lobby {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem 2.5rem;
+  text-align: center;
+}
+
+.lobby-card {
+  width: min(92vw, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.6rem 1.4rem;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: var(--surface-radius);
+  box-shadow: var(--board-shadow);
+}
+
+.lobby-create {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 1.02rem;
+}
+
+/* "or join with a code" divider with hairlines either side. */
+.lobby-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.lobby-divider::before,
+.lobby-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--surface-border);
+}
+
+.lobby-join {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lobby-code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--text-strong);
+  background: var(--field-bg);
+  border: var(--control-border-width) solid var(--field-border);
+  border-radius: var(--control-radius);
+}
+
+.lobby-code-input::placeholder {
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.lobby-code-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--select-glow);
+}
+
+/* Networking-mode badge (live vs local-test). */
+.lobby-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.lobby-mode-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--hint-move);
+  box-shadow: 0 0 0 0 currentColor;
+}
+
+.lobby-mode.is-live .lobby-mode-dot {
+  background: var(--hint-place);
+}
+
+.lobby-hint {
+  max-width: min(92vw, 420px);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Invite panel shown to the host while waiting for an opponent. */
+.invite-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(92vw, 420px);
+  padding: 1.25rem 1.4rem;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: var(--surface-radius);
+  box-shadow: var(--board-shadow);
+}
+
+.invite-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.invite-help {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 34ch;
+}
+
+.invite-panel .buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.invite-code {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  /* Offset half the tracking so the glyphs look optically centred. */
+  text-indent: 0.32em;
+  color: var(--accent);
+}
+
+.room-tag {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}

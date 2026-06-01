@@ -1,0 +1,91 @@
+/* Theme swatch picker. Each chip is a tiny board preview: skin background, a
+   dark and a light stone, and an accent bar along the bottom. Driven by the
+   per-chip --sw-* custom properties set inline from the skin catalogue. */
+
+.skin-group {
+  align-items: center;
+}
+
+.skin-swatches {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.skin-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.32rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.skin-swatch-chip {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--sw-bg);
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.4);
+  overflow: hidden;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.skin-swatch:hover .skin-swatch-chip {
+  transform: translateY(-2px);
+}
+
+.skin-swatch:focus-visible {
+  outline: none;
+}
+.skin-swatch:focus-visible .skin-swatch-chip {
+  box-shadow: 0 0 0 2px var(--sw-accent), 0 0 0 4px rgba(128, 128, 128, 0.35);
+}
+
+.skin-swatch.is-active .skin-swatch-chip {
+  box-shadow: 0 0 0 2px var(--sw-accent), 0 5px 13px rgba(0, 0, 0, 0.38);
+}
+
+.skin-swatch-v,
+.skin-swatch-h {
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translateY(-60%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.skin-swatch-v {
+  left: 7px;
+  background: var(--sw-v);
+}
+.skin-swatch-h {
+  right: 7px;
+  background: var(--sw-h);
+}
+
+.skin-swatch-accent {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  background: var(--sw-accent);
+}
+
+.skin-swatch-name {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  transition: color 0.16s ease;
+}
+
+.skin-swatch.is-active .skin-swatch-name {
+  color: var(--text);
+  font-weight: 600;
+}
