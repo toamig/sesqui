@@ -16,6 +16,15 @@ import {
   type Role,
 } from './protocol'
 import type { Transport, TransportFactory } from './transport'
+import {
+  claimSeat,
+  createGame,
+  isStoreConfigured,
+  loadGame,
+  resetGame,
+  saveState,
+} from './gameStore'
+import { getSeatToken } from './seat'
 
 /** Connection lifecycle as the UI cares about it. */
 export type OnlineStatus =
@@ -24,6 +33,7 @@ export type OnlineStatus =
   | 'waiting' // connected, alone in the room, waiting for opponent
   | 'no-opponent' // guest connected but no host answered within the grace period
   | 'playing' // both peers present
+  | 'spectating' // both seats taken; this client watches read-only
   | 'opponent-left' // peer disconnected mid-game
   | 'error'
 
@@ -41,6 +51,8 @@ export interface OnlineGame {
   state: GameState
   /** True when it is this client's turn to act. */
   myTurn: boolean
+  /** True when this client is a read-only spectator (both seats were taken). */
+  isSpectator: boolean
   /** Submit a local action; relays to the opponent and applies locally. Returns
    *  false if it is not your turn or the game is over. */
   submitAction: (action: Action) => boolean
@@ -88,34 +100,66 @@ export function useOnlineGame(options: Options | null): OnlineGame {
   const stateRef = useRef<GameState>(state)
   const myColorRef = useRef<Player | null>(null)
   const opponentSeenRef = useRef<boolean>(false)
+  // Layer 2: this browser's stable seat token, and whether we're a read-only
+  // spectator (both seats already held by others when we joined).
+  const seatTokenRef = useRef<string>(getSeatToken())
+  const spectatorRef = useRef<boolean>(false)
+  const roomRef = useRef<string>('')
 
   const setLiveState = useCallback((next: GameState) => {
     stateRef.current = next
     setState(next)
   }, [])
 
-  /** Reset the local game to a fresh board for a given game id and host colour. */
+  /** Reset the local game to a fresh board for a given game id and host colour.
+   *  When `persistAs` is set, the host writes the new game to the durable store:
+   *  'create' inserts a fresh row (first game), 'reset' bumps an existing row
+   *  (rematch). Guests never write here; they hydrate/seat via the store on
+   *  connect instead. */
   const beginGame = useCallback(
-    (gameId: number, hostColor: Player, myRole: Role) => {
+    (gameId: number, hostColor: Player, myRole: Role, persistAs?: 'create' | 'reset') => {
       gameIdRef.current = gameId
       seqRef.current = 0
       logRef.current = []
       const mine: Player = myRole === 'host' ? hostColor : otherPlayer(hostColor)
       myColorRef.current = mine
+      spectatorRef.current = false
       setMyColor(mine)
-      setLiveState(createInitialState())
+      const fresh = createInitialState()
+      setLiveState(fresh)
       setStatus('playing')
+      if (persistAs && isStoreConfigured && roomRef.current) {
+        if (persistAs === 'create') {
+          void createGame({
+            code: roomRef.current,
+            gameId,
+            state: fresh,
+            hostColor,
+            hostToken: seatTokenRef.current,
+          })
+        } else {
+          void resetGame({ code: roomRef.current, gameId, state: fresh })
+        }
+      }
     },
     [setLiveState],
   )
 
-  /** Apply one action to the local state and advance the sequence counter. */
+  /** Apply one action to the local state and advance the sequence counter.
+   *  Write-through to the durable store is best-effort and fire-and-forget: the
+   *  move was already delivered live over broadcast, so a failed/absent DB write
+   *  never blocks play. To avoid two writers racing on the same row, only the
+   *  player whose move it was (i.e. the local submitter) persists; inbound moves
+   *  are persisted by the peer that sent them. */
   const applyLocal = useCallback(
-    (action: Action) => {
+    (action: Action, persist: boolean) => {
       const next = applyAction(stateRef.current, action)
       logRef.current.push(action)
       seqRef.current += 1
       setLiveState(next)
+      if (persist && isStoreConfigured && roomRef.current) {
+        void saveState(roomRef.current, next, seqRef.current)
+      }
       return next
     },
     [setLiveState],
@@ -139,7 +183,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             if (gameIdRef.current === 0) {
               const hostColor = options?.hostColor ?? 'V'
               const gameId = Date.now()
-              beginGame(gameId, hostColor, 'host')
+              beginGame(gameId, hostColor, 'host', 'create')
               transport.send({
                 t: 'start',
                 from: peerIdRef.current,
@@ -183,7 +227,8 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             transport.send({ t: 'resync', from: peerIdRef.current, gameId: gameIdRef.current })
             return
           }
-          const next = applyLocal(msg.action)
+          // The sender persists their own move; we just apply it locally.
+          const next = applyLocal(msg.action, false)
           if (hashState(next) !== msg.hash) {
             // Divergence: trust the sender's state, request a full snapshot.
             transport.send({ t: 'resync', from: peerIdRef.current, gameId: gameIdRef.current })
@@ -219,7 +264,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           if (role === 'host') {
             const hostColor = myColorRef.current ?? options?.hostColor ?? 'V'
             const gameId = Date.now()
-            beginGame(gameId, hostColor, 'host')
+            beginGame(gameId, hostColor, 'host', 'reset')
             transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
           }
           break
@@ -248,10 +293,49 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     setStatus('connecting')
     setError(null)
     opponentSeenRef.current = false
+    spectatorRef.current = false
+    roomRef.current = options.room
+
+    // Layer 2 hydration: before joining the live channel, consult the durable
+    // store. If a game row already exists for this room, adopt its state so a
+    // refresh/reconnect resumes exactly where it left off, and claim our seat
+    // (our colour if we held one, an open seat, or spectator). Best-effort and
+    // fully skipped when the store is unconfigured (degrades to Layer 1).
+    const hydrate = async (): Promise<void> => {
+      if (!isStoreConfigured) return
+      try {
+        const existing = await loadGame(options.room)
+        if (cancelled) return
+        if (existing) {
+          const seat = await claimSeat(options.room, seatTokenRef.current)
+          if (cancelled) return
+          gameIdRef.current = existing.game_id
+          seqRef.current = existing.seq
+          logRef.current = []
+          setLiveState(existing.state)
+          if (seat === 'spectator') {
+            spectatorRef.current = true
+            myColorRef.current = null
+            setMyColor(null)
+            opponentSeenRef.current = true
+            setStatus('spectating')
+          } else if (seat === 'V' || seat === 'H') {
+            spectatorRef.current = false
+            myColorRef.current = seat
+            setMyColor(seat)
+            // Both seats filled means a real opponent exists; resume playing.
+            opponentSeenRef.current = existing.v_token !== null && existing.h_token !== null
+            setStatus(opponentSeenRef.current ? 'playing' : 'waiting')
+          }
+        }
+      } catch {
+        // Ignore store errors; fall through to live Layer 1 behaviour.
+      }
+    }
 
     options
       .createTransport(options.room)
-      .then((transport) => {
+      .then(async (transport) => {
         if (cancelled) {
           transport.close()
           return
@@ -259,6 +343,9 @@ export function useOnlineGame(options: Options | null): OnlineGame {
         transportRef.current = transport
         transport.onMessage(handleMessage)
         setStatus(options.role === 'host' ? 'waiting' : 'connecting')
+
+        await hydrate()
+        if (cancelled) return
 
         const sayHello = () =>
           transport.send({
@@ -314,10 +401,12 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       const mine = myColorRef.current
       const cur = stateRef.current
       if (!transport || mine === null) return false
+      if (spectatorRef.current) return false // spectators cannot move
       if (cur.winner !== null) return false
       if (cur.current !== mine) return false // not your turn
       const seq = seqRef.current
-      const next = applyLocal(action)
+      // Local mover persists the resulting state to the durable store.
+      const next = applyLocal(action, true)
       transport.send({
         t: 'action',
         from: peerIdRef.current,
@@ -334,10 +423,11 @@ export function useOnlineGame(options: Options | null): OnlineGame {
   const requestRematch = useCallback(() => {
     const transport = transportRef.current
     if (!transport) return
+    if (spectatorRef.current) return // spectators cannot start games
     if (role === 'host') {
       const hostColor = myColorRef.current ?? options?.hostColor ?? 'V'
       const gameId = Date.now()
-      beginGame(gameId, hostColor, 'host')
+      beginGame(gameId, hostColor, 'host', 'reset')
       transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
     } else {
       transport.send({ t: 'rematch', from: peerIdRef.current })
@@ -378,6 +468,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     role,
     state,
     myTurn,
+    isSpectator: status === 'spectating',
     submitAction,
     requestRematch,
     leave,

@@ -1,0 +1,4 @@
+# Supabase project config (used by the Supabase GitHub integration and CLI).
+# project_id is the project ref, visible in your dashboard URL
+# (supabase.com/dashboard/project/<ref>) and as the subdomain of the API URL.
+project_id = "lugersbiqmoprxbkowkk"

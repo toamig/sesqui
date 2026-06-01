@@ -89,14 +89,19 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
     if (status === 'opponent-left') return 'Opponent left the room'
     if (state.winner !== null) {
       if (state.winner === 'draw') return 'Draw.'
+      if (online.isSpectator) return `${playerName(state.winner)} wins!`
       return state.winner === myColor ? 'You win!' : 'You lost.'
+    }
+    if (online.isSpectator) {
+      return `Spectating ${playerName(state.current)} to move`
     }
     if (myColor === null) return 'Joining game'
     return myTurn ? 'Your turn' : "Opponent's turn"
   }
 
-  const showBoard = status === 'playing' || status === 'opponent-left'
-  const youAre = myColor ? playerName(myColor) : null
+  const showBoard =
+    status === 'playing' || status === 'opponent-left' || status === 'spectating'
+  const youAre = online.isSpectator ? 'a spectator' : myColor ? playerName(myColor) : null
 
   return (
     <main className="game-screen online-screen">
@@ -172,14 +177,14 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
           moveTargets={moveTargets}
           winningLine={state.winningLine}
           lastAction={null}
-          disabled={!myTurn || state.winner !== null}
+          disabled={online.isSpectator || !myTurn || state.winner !== null}
           onCellClick={handleCellClick}
         />
       )}
 
       <div className="controls">
         <div className="buttons">
-          {state.winner !== null && (
+          {state.winner !== null && !online.isSpectator && (
             <button
               type="button"
               className="btn btn-primary"
@@ -189,7 +194,7 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
             </button>
           )}
           <button type="button" className="btn" onClick={onLeave}>
-            Leave room
+            {online.isSpectator ? 'Stop watching' : 'Leave room'}
           </button>
         </div>
       </div>
