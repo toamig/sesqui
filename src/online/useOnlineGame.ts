@@ -181,6 +181,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           if (role === 'host') {
             // Host is authoritative for colour + game id.
             if (gameIdRef.current === 0) {
+              // No game yet (store off, or pre-create skipped): create one now.
               const hostColor = options?.hostColor ?? 'V'
               const gameId = Date.now()
               beginGame(gameId, hostColor, 'host', 'create')
@@ -191,7 +192,11 @@ export function useOnlineGame(options: Options | null): OnlineGame {
                 gameId,
               })
             } else if (firstContact) {
-              // Opponent (re)joined an existing game: resend start + full state.
+              // Game already exists (host pre-created it on connect, or this is a
+              // reconnect). Resend start + full state so the guest syncs, and --
+              // crucially -- advance the host out of 'waiting' into 'playing'
+              // now that a real opponent is present.
+              if (!spectatorRef.current) setStatus('playing')
               transport.send({
                 t: 'start',
                 from: peerIdRef.current,
@@ -297,10 +302,13 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     roomRef.current = options.room
 
     // Layer 2 hydration: before joining the live channel, consult the durable
-    // store. If a game row already exists for this room, adopt its state so a
-    // refresh/reconnect resumes exactly where it left off, and claim our seat
-    // (our colour if we held one, an open seat, or spectator). Best-effort and
-    // fully skipped when the store is unconfigured (degrades to Layer 1).
+    // store.
+    //  - If a row already exists -> adopt its state (refresh/reconnect resumes
+    //    where it left off) and claim our seat (our colour if we held one, an
+    //    open seat, or spectator).
+    //  - If no row exists and we are the host -> create it now so the room is
+    //    durable from creation, not only once a guest arrives.
+    // Best-effort and fully skipped when the store is unconfigured (Layer 1).
     const hydrate = async (): Promise<void> => {
       if (!isStoreConfigured) return
       try {
@@ -327,6 +335,16 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             opponentSeenRef.current = existing.v_token !== null && existing.h_token !== null
             setStatus(opponentSeenRef.current ? 'playing' : 'waiting')
           }
+        } else if (options.role === 'host') {
+          // First time hosting this room: persist a fresh game immediately so it
+          // survives a refresh even before anyone joins. beginGame('create')
+          // inserts the row and claims the host's seat.
+          const hostColor = options.hostColor ?? 'V'
+          const gameId = Date.now()
+          beginGame(gameId, hostColor, 'host', 'create')
+          // Host has no opponent yet; show the waiting/invite panel.
+          opponentSeenRef.current = false
+          setStatus('waiting')
         }
       } catch {
         // Ignore store errors; fall through to live Layer 1 behaviour.
