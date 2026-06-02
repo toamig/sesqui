@@ -128,3 +128,35 @@ export async function claimSeat(code: string, token: string): Promise<Seat | nul
   }
   return 'spectator'
 }
+
+/**
+ * Release a seat held by `token` when a player *explicitly* leaves (the "Leave
+ * room" button -- NOT a tab close or refresh, which must preserve the seat so
+ * the player can reclaim it). Frees the matching seat; if that leaves the room
+ * with no seated players, deletes the row entirely so abandoned games don't
+ * accumulate.
+ *
+ * Re-reads the row immediately before deciding, so two players leaving at once
+ * resolve correctly: whoever sees the last empty seat triggers the delete.
+ */
+export async function releaseSeat(code: string, token: string): Promise<void> {
+  const client = await getClient()
+  if (!client) return
+  const row = await loadGame(code)
+  if (!row) return
+
+  const isV = row.v_token === token
+  const isH = row.h_token === token
+  if (!isV && !isH) return // not seated here (e.g. spectator) -> nothing to free
+
+  // Would the room be empty once this seat is freed?
+  const otherSeatEmpty = isV ? row.h_token === null : row.v_token === null
+  if (otherSeatEmpty) {
+    // Both seats now vacant -> reap the room.
+    await client.from(TABLE).delete().eq('code', code)
+    return
+  }
+  // Opponent still holds their seat -> just free ours; they can return.
+  const patch = isV ? { v_token: null } : { h_token: null }
+  await client.from(TABLE).update(patch).eq('code', code)
+}

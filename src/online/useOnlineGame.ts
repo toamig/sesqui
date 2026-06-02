@@ -21,6 +21,7 @@ import {
   createGame,
   isStoreConfigured,
   loadGame,
+  releaseSeat,
   resetGame,
   saveState,
 } from './gameStore'
@@ -458,10 +459,18 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       transport.send({ t: 'bye', from: peerIdRef.current })
       transport.close()
     }
+    // Explicit leave (the button): release our seat in the durable store, and
+    // delete the room if both seats are now empty. This is deliberately NOT done
+    // in the effect-cleanup path (tab close / refresh / unmount), which must
+    // preserve the seat so the player can reclaim it on return.
+    if (isStoreConfigured && roomRef.current && !spectatorRef.current) {
+      void releaseSeat(roomRef.current, seatTokenRef.current)
+    }
     transportRef.current = null
     setStatus('idle')
     setMyColor(null)
     myColorRef.current = null
+    spectatorRef.current = false
   }, [])
 
   /** Re-open the connection from scratch (used after a 'no-opponent' timeout).

@@ -45,6 +45,14 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
   const placeTargets = selected === null ? allPlaceTargets : []
   const canMove = myTurn && state.movesLeft > 0 && state.winner === null
 
+  // Explicit leave: release our seat (deleting the room if both seats empty),
+  // THEN return to the local game. Order matters -- online.leave() reads the
+  // room/seat refs before they're torn down.
+  const handleLeave = () => {
+    online.leave()
+    onLeave()
+  }
+
   const handleCellClick = (i: number) => {
     if (!myTurn || myColor === null || state.winner !== null) return
     const cell = state.board[i]
@@ -147,7 +155,7 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
             <button type="button" className="btn btn-primary" onClick={online.retry}>
               Try again
             </button>
-            <button type="button" className="btn" onClick={onLeave}>
+            <button type="button" className="btn" onClick={handleLeave}>
               Back
             </button>
           </div>
@@ -193,7 +201,7 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
               Rematch
             </button>
           )}
-          <button type="button" className="btn" onClick={onLeave}>
+          <button type="button" className="btn" onClick={handleLeave}>
             {online.isSpectator ? 'Stop watching' : 'Leave room'}
           </button>
         </div>
