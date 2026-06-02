@@ -266,13 +266,9 @@ export function useOnlineGame(options: Options | null): OnlineGame {
         }
 
         case 'rematch': {
-          // Only the host authors a new game id.
-          if (role === 'host') {
-            const hostColor = myColorRef.current ?? options?.hostColor ?? 'V'
-            const gameId = Date.now()
-            beginGame(gameId, hostColor, 'host', 'reset')
-            transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
-          }
+          // Legacy no-op: rematch is now DB-authoritative and announced via a
+          // fresh 'start' (see requestRematch). Kept so an older peer's stray
+          // 'rematch' message is harmlessly ignored rather than crashing.
           break
         }
 
@@ -443,14 +439,24 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     const transport = transportRef.current
     if (!transport) return
     if (spectatorRef.current) return // spectators cannot start games
-    if (role === 'host') {
-      const hostColor = myColorRef.current ?? options?.hostColor ?? 'V'
-      const gameId = Date.now()
-      beginGame(gameId, hostColor, 'host', 'reset')
-      transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
-    } else {
-      transport.send({ t: 'rematch', from: peerIdRef.current })
-    }
+
+    // Rematch is DB-authoritative so it works even if the opponent's live
+    // connection has dropped (mobile tabs suspend aggressively): whoever clicks
+    // resets the durable game row and broadcasts the new game. The other side
+    // applies it live if present, or hydrates it on reconnect. The host's colour
+    // is preserved across rematches; the new game id orders generations so a
+    // stale board can't win a race.
+    const hostColor =
+      role === 'host'
+        ? myColorRef.current ?? options?.hostColor ?? 'V'
+        : myColorRef.current
+          ? otherPlayer(myColorRef.current)
+          : options?.hostColor ?? 'V'
+    const gameId = Date.now()
+    const myRole: Role = role ?? 'guest'
+    // beginGame('reset') updates our local game AND writes the reset to the DB.
+    beginGame(gameId, hostColor, myRole, 'reset')
+    transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
   }, [beginGame, options?.hostColor, role])
 
   const leave = useCallback(() => {
