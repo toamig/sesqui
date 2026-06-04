@@ -16,14 +16,34 @@ import { getSupabase, isSupabaseConfigured } from './supabaseClient'
 export { isSupabaseConfigured }
 
 /** Ensure there is a session: reuse the persisted one, else sign in
- *  anonymously. Returns the current user (or null if backend unconfigured). */
+ *  anonymously. Returns the current user (or null if backend unconfigured).
+ *
+ *  Critically, this also hands the access token to the REALTIME socket via
+ *  setAuth. On a cold first visit (e.g. opening an invite link in a brand-new
+ *  browser) the realtime socket would otherwise connect before it has any token
+ *  and the very first channel subscribe is rejected ("Realtime channel timed
+ *  out"). A warm visit masked this because the socket already had auth from a
+ *  prior session. Setting it explicitly fixes the cold invite-link join. */
 export async function ensureSignedIn(): Promise<User | null> {
   const supabase = await getSupabase()
   if (!supabase) return null
+  const applyRealtimeAuth = (token?: string) => {
+    if (token) {
+      try {
+        supabase.realtime.setAuth(token)
+      } catch {
+        // Older client signature; ignore -- channels still work for broadcast.
+      }
+    }
+  }
   const { data } = await supabase.auth.getSession()
-  if (data.session?.user) return data.session.user
+  if (data.session?.user) {
+    applyRealtimeAuth(data.session.access_token)
+    return data.session.user
+  }
   const { data: anon, error } = await supabase.auth.signInAnonymously()
   if (error) return null
+  applyRealtimeAuth(anon.session?.access_token)
   return anon.user
 }
 
