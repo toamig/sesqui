@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MainMenu } from './screens/MainMenu'
 import { GameScreen } from './screens/GameScreen'
 import { RulesScreen } from './screens/RulesScreen'
 import { OnlineLobby } from './screens/OnlineLobby'
@@ -8,7 +9,8 @@ import { applySkin, readStoredSkin } from './theme'
 import type { SkinId } from './theme'
 import './App.css'
 
-type View = 'game' | 'rules' | 'lobby' | 'online'
+type LocalMode = 'pvp' | 'ai' | 'watch'
+type View = 'menu' | 'game' | 'rules' | 'lobby' | 'online'
 
 interface RoomSession {
   room: string
@@ -26,8 +28,9 @@ function readInviteRoom(): RoomSession | null {
 export default function App() {
   const [skin, setSkin] = useState<SkinId>(readStoredSkin)
   const invite = readInviteRoom()
-  const [view, setView] = useState<View>(invite ? 'online' : 'game')
+  const [view, setView] = useState<View>(invite ? 'online' : 'menu')
   const [session, setSession] = useState<RoomSession | null>(invite)
+  const [localMode, setLocalMode] = useState<LocalMode>('pvp')
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -53,15 +56,25 @@ export default function App() {
 
   const leaveRoom = () => {
     setSession(null)
-    setView('game')
+    setView('menu')
+  }
+
+  /** Menu choices route to the right screen. */
+  const handleMenuSelect = (target: 'online' | 'pvp' | 'ai' | 'watch' | 'rules') => {
+    if (target === 'online') setView('lobby')
+    else if (target === 'rules') setView('rules')
+    else {
+      setLocalMode(target)
+      setView('game')
+    }
   }
 
   if (view === 'rules') {
-    return <RulesScreen onBack={() => setView('game')} />
+    return <RulesScreen onBack={() => setView('menu')} />
   }
 
   if (view === 'lobby') {
-    return <OnlineLobby onEnter={enterRoom} onBack={() => setView('game')} />
+    return <OnlineLobby onEnter={enterRoom} onBack={() => setView('menu')} />
   }
 
   if (view === 'online' && session) {
@@ -75,12 +88,15 @@ export default function App() {
     )
   }
 
-  return (
-    <GameScreen
-      skin={skin}
-      onSkinChange={changeSkin}
-      onShowRules={() => setView('rules')}
-      onPlayOnline={() => setView('lobby')}
-    />
-  )
+  if (view === 'game') {
+    return (
+      <GameScreen
+        mode={localMode}
+        onBack={() => setView('menu')}
+        onShowRules={() => setView('rules')}
+      />
+    )
+  }
+
+  return <MainMenu skin={skin} onSkinChange={changeSkin} onSelect={handleMenuSelect} />
 }

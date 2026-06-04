@@ -26,6 +26,14 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
 
   return (
     <main className="online-lobby">
+      <div className="screen-topbar">
+        <button type="button" className="icon-back" onClick={onBack} aria-label="Back to menu">
+          <span aria-hidden>←</span> Menu
+        </button>
+        <span className="screen-title">Play Online</span>
+        <span className="topbar-spacer" aria-hidden />
+      </div>
+
       <header className="game-header">
         <h1>Play Online</h1>
         <p className="subtitle">
@@ -80,10 +88,6 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
       )}
 
       <Leaderboard />
-
-      <button type="button" className="rules-link" onClick={onBack}>
-        Back to local game
-      </button>
     </main>
   )
 }

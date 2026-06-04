@@ -11,23 +11,24 @@ import {
 } from '../game/rules'
 import type { Action, Board as BoardModel, GameState, Player } from '../game/types'
 import { Difficulty } from '../game/ai'
-import { SkinPicker } from '../components/SkinPicker'
-import type { SkinId } from '../theme'
 
 type Mode = 'pvp' | 'ai' | 'watch'
 
 interface GameScreenProps {
-  /** The active visual theme and a setter, lifted to App for persistence. */
-  skin: SkinId
-  onSkinChange: (id: SkinId) => void
+  /** Which local mode this screen runs: chosen on the main menu, fixed here so
+   *  the controls never reshuffle. ('pvp' | 'ai' | 'watch') */
+  mode: Mode
+  /** Return to the main menu. */
+  onBack: () => void
   /** Open the standalone rules / how-to-play page. */
   onShowRules: () => void
-  /** Open the online lobby (create / join a room). */
-  onPlayOnline: () => void
 }
 
 const playerName = (p: Player): string =>
   p === 'V' ? 'Vertical (Black)' : 'Horizontal (White)'
+
+const modeTitle = (m: Mode): string =>
+  m === 'pvp' ? 'Pass & Play' : m === 'ai' ? 'vs Computer' : 'Watch AI'
 
 const engineLabel = (d: Difficulty): string =>
   d === Difficulty.Easy
@@ -44,9 +45,8 @@ const countPieces = (board: BoardModel, player: Player): number => {
   return n
 }
 
-export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: GameScreenProps) {
+export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
   const [state, setState] = useState<GameState>(createInitialState)
-  const [mode, setMode] = useState<Mode>('pvp')
   const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Medium)
   // Watch mode (AI vs AI): the engine driving each side. Defaults pit the two
   // strong engines against each other so the matchup is visible immediately.
@@ -153,14 +153,12 @@ export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: Ga
 
   const resetWith = (
     next: Partial<{
-      mode: Mode
       difficulty: Difficulty
       humanColor: Player
       vEngine: Difficulty
       hEngine: Difficulty
     }>,
   ) => {
-    if (next.mode !== undefined) setMode(next.mode)
     if (next.difficulty !== undefined) setDifficulty(next.difficulty)
     if (next.humanColor !== undefined) setHumanColor(next.humanColor)
     if (next.vEngine !== undefined) setVEngine(next.vEngine)
@@ -212,19 +210,21 @@ export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: Ga
 
   return (
     <main className="game-screen">
+      <div className="screen-topbar">
+        <button type="button" className="icon-back" onClick={onBack} aria-label="Back to menu">
+          <span aria-hidden>←</span> Menu
+        </button>
+        <span className="screen-title">{modeTitle(mode)}</span>
+        <button type="button" className="icon-help" onClick={onShowRules} aria-label="How to play">
+          ?
+        </button>
+      </div>
+
       <header className="game-header">
         <h1>Sesqui</h1>
         <p className="subtitle">
           Black links top to bottom. White links left to right.
         </p>
-        <div className="header-links">
-          <button type="button" className="rules-link link-help" onClick={onShowRules}>
-            How to play
-          </button>
-          <button type="button" className="rules-link link-online" onClick={onPlayOnline}>
-            Play online
-          </button>
-        </div>
       </header>
 
       <div className="status-slot">
@@ -261,19 +261,6 @@ export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: Ga
       </div>
 
       <div className="controls">
-        <div className="control-group">
-          <label htmlFor="mode">Opponent</label>
-          <select
-            id="mode"
-            value={mode}
-            onChange={(e) => resetWith({ mode: e.target.value as Mode })}
-          >
-            <option value="pvp">2 Players</option>
-            <option value="ai">vs Computer</option>
-            <option value="watch">Watch (AI vs AI)</option>
-          </select>
-        </div>
-
         {mode === 'ai' && (
           <>
             <div className="control-group">
@@ -349,8 +336,6 @@ export function GameScreen({ skin, onSkinChange, onShowRules, onPlayOnline }: Ga
             </button>
           )}
         </div>
-
-        <SkinPicker value={skin} onChange={onSkinChange} />
       </div>
     </main>
   )
