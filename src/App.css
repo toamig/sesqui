@@ -735,99 +735,10 @@
   color: var(--accent);
 }
 
-/* ---- Auth / identity panel (lobby) ---- */
-.auth-panel {
-  width: min(92vw, 420px);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.9rem 1.1rem;
-  background: var(--surface);
-  border: var(--control-border-width) solid var(--surface-border);
-  border-radius: var(--surface-radius);
-}
-
-.auth-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.auth-identity {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.auth-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.auth-label {
-  font-size: 0.9rem;
-  color: var(--text);
-}
-
-.auth-link {
-  background: none;
-  border: none;
-  color: var(--link);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-  padding: 0 0.25rem;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.auth-link:hover {
-  color: var(--accent-2-soft);
-}
-
-.auth-name-edit,
-.auth-email {
-  display: flex;
-  gap: 0.4rem;
-  flex: 1;
-}
-
-.auth-name-input,
-.auth-email-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.45rem 0.6rem;
-  font: inherit;
-  font-size: 0.9rem;
-  color: var(--text-strong);
-  background: var(--field-bg);
-  border: var(--control-border-width) solid var(--field-border);
-  border-radius: var(--control-radius);
-}
-
+/* Small button modifier (used in the account drawer). */
 .btn-small {
   padding: 0.4rem 0.7rem;
   font-size: 0.82rem;
-}
-
-.auth-upgrade {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  border-top: 1px solid var(--surface-border);
-  padding-top: 0.75rem;
 }
 
 .btn-google {
@@ -840,19 +751,6 @@
   background: #f7f8f8;
 }
 
-.auth-or {
-  text-align: center;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  position: relative;
-}
-
-.auth-notice {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
 /* Rating change shown after a rated online game ends. */
 .rating-line {
   font-family: var(--font-display);
@@ -861,71 +759,6 @@
   letter-spacing: 0.01em;
   color: var(--accent);
   padding: 0.2rem 0.6rem;
-}
-
-/* ---- Leaderboard (lobby) ---- */
-.leaderboard {
-  width: min(92vw, 420px);
-}
-
-.leaderboard-body {
-  padding: 0.5rem 0.4rem;
-  background: var(--surface);
-  border: var(--control-border-width) solid var(--surface-border);
-  border-radius: var(--surface-radius);
-  /* Reserve room for ~5 rows so loading -> loaded doesn't resize the panel. */
-  min-height: 11.5rem;
-}
-
-.leaderboard-empty {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 0.6rem;
-}
-
-.leaderboard-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.leaderboard-row {
-  display: grid;
-  grid-template-columns: 1.6rem 1fr auto auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.88rem;
-}
-
-.leaderboard-row:nth-child(odd) {
-  background: color-mix(in srgb, var(--surface-border) 30%, transparent);
-  border-radius: 6px;
-}
-
-.lb-rank {
-  font-family: var(--font-mono, monospace);
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.lb-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text);
-}
-
-.lb-record {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.lb-rating {
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--accent);
 }
 
 /* =============================================================== *
@@ -1160,23 +993,6 @@
   padding-right: 3.2rem;
 }
 
-/* Leaderboard heading (non-collapsing version) */
-.leaderboard-heading {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  text-align: center;
-}
-
-/* Always-visible auth upgrade block (no expand) */
-.auth-upgrade-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 0 0 0.1rem;
-}
-
 /* =============================================================== *
  * Online hub (Play a Friend / Casual / Ranked)                    *
  * =============================================================== */
@@ -1309,6 +1125,16 @@
 .hub-badge-rank {
   background: var(--accent);
   color: var(--accent-contrast);
+}
+
+/* Lock glyph next to a gated card's title (casual/ranked when signed out).
+   Inline so the title row never reflows when it appears/disappears. */
+.hub-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 /* =============================================================== *

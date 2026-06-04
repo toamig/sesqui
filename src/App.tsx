@@ -108,7 +108,13 @@ export default function App() {
   if (view === 'rules') {
     screen = <RulesScreen onBack={() => setView('menu')} />
   } else if (view === 'online-hub') {
-    screen = <OnlineHub onChoose={handleOnlineChoice} onBack={() => setView('menu')} />
+    screen = (
+      <OnlineHub
+        onChoose={handleOnlineChoice}
+        onBack={() => setView('menu')}
+        onRequireAuth={() => setAccountOpen(true)}
+      />
+    )
   } else if (view === 'lobby') {
     screen = <OnlineLobby onEnter={enterRoom} onBack={() => setView('online-hub')} />
   } else if (view === 'match') {

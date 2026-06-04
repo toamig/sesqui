@@ -1,12 +1,11 @@
 // Online hub: the three ways to play online. Flat, fixed cards (no expansions).
-//   - Play a Friend  -> private room by code (always casual)
-//   - Casual Match   -> matchmaking, unranked, open to anyone
-//   - Ranked Match   -> matchmaking, Elo, signed-in players only
-// The leaderboard sits below as context for the ranked ladder.
+//   - Play a Friend  -> private room by code (always casual, no login needed)
+//   - Casual Match   -> matchmaking, unranked, requires sign-in
+//   - Ranked Match   -> matchmaking, Elo, requires sign-in
+// Identity / sign-in lives in the global account drawer (the avatar, top-right),
+// so a guest who taps a locked card is sent there.
 
 import type { ReactNode } from 'react'
-import { AuthPanel } from '../components/AuthPanel'
-import { Leaderboard } from '../components/Leaderboard'
 import { isOnlineConfigured } from '../online/config'
 import { useAuth } from '../online/useAuth'
 
@@ -15,6 +14,8 @@ export type OnlineChoice = 'friend' | 'casual' | 'ranked'
 interface OnlineHubProps {
   onChoose: (choice: OnlineChoice) => void
   onBack: () => void
+  /** Open the account drawer so a guest can sign in for matchmaking. */
+  onRequireAuth: () => void
 }
 
 interface CardProps {
@@ -24,16 +25,15 @@ interface CardProps {
   onClick: () => void
   variant?: 'primary' | 'ranked'
   badge?: ReactNode
-  disabled?: boolean
+  locked?: boolean
 }
 
-function HubCard({ icon, title, subtitle, onClick, variant, badge, disabled }: CardProps) {
+function HubCard({ icon, title, subtitle, onClick, variant, badge, locked }: CardProps) {
   return (
     <button
       type="button"
       className={`hub-card ${variant ? `hub-card-${variant}` : ''}`}
       onClick={onClick}
-      disabled={disabled}
     >
       <span className="hub-icon" aria-hidden>
         {icon}
@@ -42,6 +42,14 @@ function HubCard({ icon, title, subtitle, onClick, variant, badge, disabled }: C
         <span className="hub-title">
           {title}
           {badge}
+          {locked && (
+            <span className="hub-lock" aria-label="Sign in required" title="Sign in required">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+            </span>
+          )}
         </span>
         <span className="hub-subtitle">{subtitle}</span>
       </span>
@@ -72,9 +80,16 @@ const IconRanked = (
   </svg>
 )
 
-export function OnlineHub({ onChoose, onBack }: OnlineHubProps) {
+export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
   const auth = useAuth(true)
+  // Until auth resolves, treat as not-signed-in (the lock shows, tapping prompts
+  // sign-in). Friends play never needs a login.
   const signedIn = isOnlineConfigured && auth.ready && !auth.anonymous
+
+  const chooseMatch = (choice: 'casual' | 'ranked') => {
+    if (signedIn) onChoose(choice)
+    else onRequireAuth()
+  }
 
   return (
     <main className="online-hub">
@@ -91,8 +106,6 @@ export function OnlineHub({ onChoose, onBack }: OnlineHubProps) {
         <p className="subtitle">Pick how you want to play.</p>
       </header>
 
-      <AuthPanel active />
-
       <nav className="hub-list" aria-label="Online modes">
         <HubCard
           icon={IconFriend}
@@ -104,24 +117,20 @@ export function OnlineHub({ onChoose, onBack }: OnlineHubProps) {
         <HubCard
           icon={IconCasual}
           title="Casual Match"
-          subtitle="Quick game vs anyone, no pressure"
-          onClick={() => onChoose('casual')}
+          subtitle={signedIn ? 'Quick game vs anyone, no pressure' : 'Sign in to find a match'}
+          onClick={() => chooseMatch('casual')}
+          locked={!signedIn}
         />
         <HubCard
           icon={IconRanked}
           title="Ranked Match"
-          subtitle={
-            signedIn
-              ? 'Compete for Elo and the leaderboard'
-              : 'Climb the leaderboard · sign in to play'
-          }
-          onClick={() => onChoose('ranked')}
+          subtitle={signedIn ? 'Compete for Elo and rank up' : 'Sign in to play ranked'}
+          onClick={() => chooseMatch('ranked')}
           variant="ranked"
           badge={<span className="hub-badge hub-badge-rank">Elo</span>}
+          locked={!signedIn}
         />
       </nav>
-
-      <Leaderboard />
     </main>
   )
 }
