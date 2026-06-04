@@ -10,8 +10,8 @@
 // a no-op returning null/false, so the online flow gracefully degrades to
 // in-memory Layer 1 behaviour.
 
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GameState, Player } from '../game/types'
+import { getSupabase, isSupabaseConfigured } from './supabaseClient'
 
 /** One persisted game row, mirroring the public.games table. */
 export interface GameRow {
@@ -27,27 +27,14 @@ export interface GameRow {
 /** Seat a token can hold when it (re)joins a room. */
 export type Seat = Player | 'spectator'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-
 /** True when the durable store is available (keys present). */
-export const isStoreConfigured = Boolean(url && anonKey)
+export const isStoreConfigured = isSupabaseConfigured
 
 const TABLE = 'games'
 
-// Lazily-created Supabase client, shared across calls. Dynamic import keeps
-// @supabase/supabase-js out of the initial bundle.
-let clientPromise: Promise<SupabaseClient | null> | null = null
-
-async function getClient(): Promise<SupabaseClient | null> {
-  if (!isStoreConfigured) return null
-  if (!clientPromise) {
-    clientPromise = import('@supabase/supabase-js')
-      .then((mod) => mod.createClient(url as string, anonKey as string))
-      .catch(() => null)
-  }
-  return clientPromise
-}
+// Uses the ONE shared client (see supabaseClient.ts) so DB writes carry the auth
+// session and row-level security sees auth.uid().
+const getClient = getSupabase
 
 /** Fetch a game row by room code, or null if it doesn't exist / store is off. */
 export async function loadGame(code: string): Promise<GameRow | null> {

@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { makeRoomCode, normalizeRoomCode } from '../online/protocol'
 import { isOnlineConfigured, onlineModeLabel } from '../online/config'
+import { AuthPanel } from '../components/AuthPanel'
 
 interface OnlineLobbyProps {
   /** Join (or create) a room as host or guest. */
@@ -30,6 +31,8 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
           Create a room and share the code, or join a friend&apos;s room.
         </p>
       </header>
+
+      <AuthPanel active />
 
       <div className="lobby-card">
         <button type="button" className="btn btn-primary lobby-create" onClick={host}>

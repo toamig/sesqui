@@ -734,3 +734,124 @@
   letter-spacing: 0.14em;
   color: var(--accent);
 }
+
+/* ---- Auth / identity panel (lobby) ---- */
+.auth-panel {
+  width: min(92vw, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: var(--surface-radius);
+}
+
+.auth-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.auth-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.auth-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.auth-label {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-link:hover {
+  color: var(--accent-2-soft);
+}
+
+.auth-name-edit,
+.auth-email {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.auth-name-input,
+.auth-email-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-strong);
+  background: var(--field-bg);
+  border: var(--control-border-width) solid var(--field-border);
+  border-radius: var(--control-radius);
+}
+
+.btn-small {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.auth-upgrade {
+  border-top: 1px solid var(--surface-border);
+  padding-top: 0.7rem;
+}
+
+.auth-upgrade-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.btn-google {
+  background: #fff;
+  color: #1f1f1f;
+  border: 1px solid #dadce0;
+}
+
+.btn-google:hover {
+  background: #f7f8f8;
+}
+
+.auth-or {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  position: relative;
+}
+
+.auth-notice {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}

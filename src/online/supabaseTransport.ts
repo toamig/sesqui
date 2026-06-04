@@ -2,34 +2,29 @@
 //
 // Implements the same Transport contract as LocalTransport, but over a Supabase
 // Realtime "broadcast" channel keyed by room code. Broadcast is the simplest
-// realtime primitive: no database, no auth, just a pub/sub topic two clients
-// join by name. That is all Layer 1 needs.
+// realtime primitive: a pub/sub topic two clients join by name.
 //
-// This file is written so the app COMPILES AND RUNS without @supabase/supabase-js
-// installed: the import is dynamic and only happens when keys are configured.
-// To enable cross-device play:
-//   1. npm install @supabase/supabase-js
-//   2. set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (see config.ts)
-//   3. rebuild. The factory below then connects real channels.
+// Uses the ONE shared client (supabaseClient.ts) so realtime, auth, and the DB
+// share a session. Before going online we ensure an (anonymous) identity exists,
+// so every connection is tied to a real auth.uid().
 
 import type { NetMessage } from './protocol'
 import type { Transport, TransportFactory } from './transport'
+import { getSupabase } from './supabaseClient'
+import { ensureSignedIn } from './auth'
 
 const EVENT = 'msg'
 
-/** Build a Supabase-backed transport factory bound to the given credentials. */
-export function createSupabaseTransport(url: string, anonKey: string): TransportFactory {
+/** Supabase-backed transport factory using the shared client. */
+export function createSupabaseTransport(): TransportFactory {
   return async (room: string): Promise<Transport> => {
-    // Dynamic import keeps @supabase/supabase-js fully optional: bundlers only
-    // pull it when this code path runs (i.e. when keys exist).
-    const mod = await import('@supabase/supabase-js').catch(() => {
-      throw new Error(
-        'Online backend selected but @supabase/supabase-js is not installed. Run: npm install @supabase/supabase-js',
-      )
-    })
-    const client = mod.createClient(url, anonKey, {
-      realtime: { params: { eventsPerSecond: 20 } },
-    })
+    // Establish an identity (anonymous if not signed in) before connecting, so
+    // RLS and seat ownership see auth.uid().
+    await ensureSignedIn()
+    const client = await getSupabase()
+    if (!client) {
+      throw new Error('Online backend not configured (missing Supabase keys).')
+    }
 
     // `self: false` means we never receive our own broadcasts (matches the
     // LocalTransport contract). Channel name namespaces the room.

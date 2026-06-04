@@ -25,7 +25,7 @@ import {
   resetGame,
   saveState,
 } from './gameStore'
-import { getSeatToken } from './seat'
+import { getSeatToken, resolveSeatToken } from './seat'
 
 /** Connection lifecycle as the UI cares about it. */
 export type OnlineStatus =
@@ -309,6 +309,11 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     const hydrate = async (): Promise<void> => {
       if (!isStoreConfigured) return
       try {
+        // Resolve our seat identity (auth.uid() when signed in, else the local
+        // browser token) before any seat decision, so seats are owned by a
+        // verifiable user that RLS can check.
+        seatTokenRef.current = await resolveSeatToken()
+        if (cancelled) return
         const existing = await loadGame(options.room)
         if (cancelled) return
         if (existing) {

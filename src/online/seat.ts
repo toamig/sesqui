@@ -7,9 +7,27 @@
 // records which token holds each seat (v_token / h_token). On load we match our
 // token against the row to decide: resume as V, resume as H, or spectate.
 
+import { ensureSignedIn } from './auth'
+import { isSupabaseConfigured } from './supabaseClient'
+
 const STORAGE_KEY = 'sesqui-seat-token'
 
-/** A stable opaque token for this browser, created once and reused. */
+/**
+ * The identity that holds a seat. When auth is configured this is the user's
+ * auth.uid() (stable across devices once they sign in, and verifiable by RLS).
+ * When unconfigured (local-test mode) it falls back to the per-browser
+ * localStorage token, so two-tab play still works without a backend.
+ */
+export async function resolveSeatToken(): Promise<string> {
+  if (isSupabaseConfigured) {
+    const user = await ensureSignedIn()
+    if (user) return user.id
+  }
+  return getSeatToken()
+}
+
+/** A stable opaque token for this browser, created once and reused. Used as the
+ *  seat identity only in local-test mode (no auth backend). */
 export function getSeatToken(): string {
   try {
     const existing = localStorage.getItem(STORAGE_KEY)

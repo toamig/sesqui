@@ -14,16 +14,14 @@
 
 import { createLocalTransport, type TransportFactory } from './transport'
 import { createSupabaseTransport } from './supabaseTransport'
-
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+import { isSupabaseConfigured } from './supabaseClient'
 
 /** True when real backend keys are configured (cross-device play available). */
-export const isOnlineConfigured = Boolean(url && anonKey)
+export const isOnlineConfigured = isSupabaseConfigured
 
 /** The transport the app should use: Supabase when configured, else local. */
 export const transportFactory: TransportFactory = isOnlineConfigured
-  ? createSupabaseTransport(url as string, anonKey as string)
+  ? createSupabaseTransport()
   : createLocalTransport
 
 /** Short label for the UI to explain the current networking mode. */
