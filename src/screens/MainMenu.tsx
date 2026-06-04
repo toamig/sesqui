@@ -1,23 +1,15 @@
 // Main menu: the landing hub. Players choose what to do here, so every other
 // screen has a single clear purpose and a fixed layout (no in-place expansions).
 //
-// Each menu row lifts/tints on hover but never changes the page layout. The
-// theme swatches sit at the bottom as a quiet settings affordance.
+// The account button + theme now live in the global account drawer (reachable
+// from any screen), so the menu stays focused purely on the game modes.
 
 import type { ReactNode } from 'react'
-import { SkinPicker } from '../components/SkinPicker'
-import { isSupabaseConfigured } from '../online/auth'
-import { useAuth } from '../online/useAuth'
-import type { SkinId } from '../theme'
 
 type MenuTarget = 'online' | 'pvp' | 'ai' | 'watch' | 'rules'
 
 interface MainMenuProps {
-  skin: SkinId
-  onSkinChange: (id: SkinId) => void
   onSelect: (target: MenuTarget) => void
-  /** Open the account / profile screen. */
-  onProfile: () => void
 }
 
 interface ItemProps {
@@ -78,30 +70,9 @@ const IconWatch = (
   </svg>
 )
 
-export function MainMenu({ skin, onSkinChange, onSelect, onProfile }: MainMenuProps) {
-  const auth = useAuth(isSupabaseConfigured)
-
+export function MainMenu({ onSelect }: MainMenuProps) {
   return (
     <main className="main-menu">
-      {isSupabaseConfigured && (
-        <button
-          type="button"
-          className="account-chip"
-          onClick={onProfile}
-          aria-label="Account"
-        >
-          <span className="account-chip-avatar" aria-hidden>
-            {auth.ready ? auth.label.charAt(0).toUpperCase() : '·'}
-          </span>
-          <span className="account-chip-name">
-            {auth.ready ? auth.label : '…'}
-            {auth.ready && auth.rating && (
-              <span className="account-chip-rating">{auth.rating.rating}</span>
-            )}
-          </span>
-        </button>
-      )}
-
       <header className="menu-header">
         <h1 className="menu-wordmark">Sesqui</h1>
         <p className="menu-tagline">A connection game of two directions.</p>
@@ -139,9 +110,6 @@ export function MainMenu({ skin, onSkinChange, onSelect, onProfile }: MainMenuPr
         <button type="button" className="rules-link link-help" onClick={() => onSelect('rules')}>
           How to play
         </button>
-        <div className="menu-theme">
-          <SkinPicker value={skin} onChange={onSkinChange} />
-        </div>
       </div>
     </main>
   )

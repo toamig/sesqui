@@ -2,19 +2,20 @@ import { useEffect, useState } from 'react'
 import { MainMenu } from './screens/MainMenu'
 import { GameScreen } from './screens/GameScreen'
 import { RulesScreen } from './screens/RulesScreen'
-import { ProfileScreen } from './screens/ProfileScreen'
 import { OnlineHub } from './screens/OnlineHub'
 import type { OnlineChoice } from './screens/OnlineHub'
 import { OnlineLobby } from './screens/OnlineLobby'
 import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
+import { AccountButton } from './components/AccountButton'
+import { AccountDrawer } from './components/AccountDrawer'
 import { normalizeRoomCode } from './online/protocol'
 import { applySkin, readStoredSkin } from './theme'
 import type { SkinId } from './theme'
 import './App.css'
 
 type LocalMode = 'pvp' | 'ai' | 'watch'
-type View = 'menu' | 'game' | 'rules' | 'profile' | 'online-hub' | 'lobby' | 'match' | 'online'
+type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online'
 
 interface RoomSession {
   room: string
@@ -34,7 +35,7 @@ function readInviteRoom(): RoomSession | null {
 function readDevScreen(): View | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null
   const s = new URLSearchParams(window.location.search).get('screen')
-  const allowed: View[] = ['menu', 'game', 'rules', 'profile', 'online-hub', 'lobby', 'match']
+  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match']
   return (allowed as string[]).includes(s ?? '') ? (s as View) : null
 }
 
@@ -46,6 +47,7 @@ export default function App() {
   const [session, setSession] = useState<RoomSession | null>(invite)
   const [localMode, setLocalMode] = useState<LocalMode>('pvp')
   const [matchRanked, setMatchRanked] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -93,30 +95,20 @@ export default function App() {
     }
   }
 
+  // The active screen. The account button + drawer render globally on top of
+  // whichever screen this is, so the account is reachable from anywhere without
+  // navigating away (you keep your place, even mid-game).
+  let screen
   if (view === 'rules') {
-    return <RulesScreen onBack={() => setView('menu')} />
-  }
-
-  if (view === 'profile') {
-    return (
-      <ProfileScreen skin={skin} onSkinChange={changeSkin} onBack={() => setView('menu')} />
-    )
-  }
-
-  if (view === 'online-hub') {
-    return <OnlineHub onChoose={handleOnlineChoice} onBack={() => setView('menu')} />
-  }
-
-  if (view === 'lobby') {
-    return <OnlineLobby onEnter={enterRoom} onBack={() => setView('online-hub')} />
-  }
-
-  if (view === 'match') {
-    return <MatchSearch ranked={matchRanked} onCancel={() => setView('online-hub')} />
-  }
-
-  if (view === 'online' && session) {
-    return (
+    screen = <RulesScreen onBack={() => setView('menu')} />
+  } else if (view === 'online-hub') {
+    screen = <OnlineHub onChoose={handleOnlineChoice} onBack={() => setView('menu')} />
+  } else if (view === 'lobby') {
+    screen = <OnlineLobby onEnter={enterRoom} onBack={() => setView('online-hub')} />
+  } else if (view === 'match') {
+    screen = <MatchSearch ranked={matchRanked} onCancel={() => setView('online-hub')} />
+  } else if (view === 'online' && session) {
+    screen = (
       <OnlineScreen
         key={`${session.room}-${session.role}`}
         room={session.room}
@@ -124,24 +116,28 @@ export default function App() {
         onLeave={leaveRoom}
       />
     )
-  }
-
-  if (view === 'game') {
-    return (
+  } else if (view === 'game') {
+    screen = (
       <GameScreen
         mode={localMode}
         onBack={() => setView('menu')}
         onShowRules={() => setView('rules')}
       />
     )
+  } else {
+    screen = <MainMenu onSelect={handleMenuSelect} />
   }
 
   return (
-    <MainMenu
-      skin={skin}
-      onSkinChange={changeSkin}
-      onSelect={handleMenuSelect}
-      onProfile={() => setView('profile')}
-    />
+    <>
+      {screen}
+      <AccountButton onOpen={() => setAccountOpen(true)} />
+      <AccountDrawer
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        skin={skin}
+        onSkinChange={changeSkin}
+      />
+    </>
   )
 }

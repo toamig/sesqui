@@ -210,14 +210,22 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
 
   return (
     <main className="game-screen">
-      <div className="screen-topbar">
-        <button type="button" className="icon-back" onClick={onBack} aria-label="Back to menu">
-          <span aria-hidden>←</span> Menu
-        </button>
+      <div className="screen-topbar topbar-with-fab">
+        <div className="topbar-left">
+          <button type="button" className="icon-back" onClick={onBack} aria-label="Back to menu">
+            <span aria-hidden>←</span> Menu
+          </button>
+          <button
+            type="button"
+            className="icon-help"
+            onClick={onShowRules}
+            aria-label="How to play"
+          >
+            ?
+          </button>
+        </div>
         <span className="screen-title">{modeTitle(mode)}</span>
-        <button type="button" className="icon-help" onClick={onShowRules} aria-label="How to play">
-          ?
-        </button>
+        <span className="topbar-spacer" aria-hidden />
       </div>
 
       <header className="game-header">

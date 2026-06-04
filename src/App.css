@@ -1079,11 +1079,6 @@
   width: min(92vw, 420px);
 }
 
-.menu-theme {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
 
 /* =============================================================== *
  * Shared screen topbar (back / title / help)                      *
@@ -1149,6 +1144,20 @@
 
 .topbar-spacer {
   justify-self: end;
+}
+
+/* The left cell can hold a small group (back + help) without breaking the grid. */
+.topbar-left {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* On screens that coexist with the global account FAB, keep the right edge clear
+   so the title/help never sit under the floating avatar. */
+.topbar-with-fab {
+  padding-right: 3.2rem;
 }
 
 /* Leaderboard heading (non-collapsing version) */
@@ -1397,229 +1406,297 @@
 }
 
 /* =============================================================== *
- * Account chip (main menu)                                        *
+ * Account: global button (FAB) + slide-in drawer overlay          *
+ * The account is reachable from every screen and floats above it. *
  * =============================================================== */
-.account-chip {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+
+/* Fixed avatar button, top-right of every screen. */
+.account-fab {
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: max(0.85rem, env(safe-area-inset-right));
+  z-index: 1000;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.7rem 0.35rem 0.4rem;
+  gap: 0.45rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
   background: var(--surface);
   border: var(--control-border-width) solid var(--surface-border);
   border-radius: 100px;
   color: var(--text);
   cursor: pointer;
-  max-width: 45vw;
-  transition: border-color 0.18s ease, transform 0.18s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.account-chip:hover {
+.account-fab:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
+  box-shadow: var(--board-shadow);
 }
 
-.account-chip-avatar {
+.account-fab-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.85rem;
+  height: 1.85rem;
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-contrast);
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
-.account-chip-name {
+.account-fab-rating {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--accent);
+  padding-right: 0.15rem;
+}
+
+/* ---- Drawer overlay ---- */
+.drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; /* above the body::after texture (9999) */
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.drawer-root.is-open {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 6, 14, 0.55);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.drawer-root.is-open .drawer-scrim {
+  opacity: 1;
+}
+
+/* The panel: a column anchored to the right on desktop, a bottom sheet feel on
+   phones. Slides in; transform-only so it stays smooth. */
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(92vw, 400px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--surface-border);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.4);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer-root.is-open .drawer-panel {
+  transform: translateX(0);
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--surface-border);
+  flex: 0 0 auto;
+}
+
+.drawer-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-strong);
+}
+
+.drawer-close {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--text-muted);
   font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.drawer-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.1rem 1.2rem calc(1.5rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* ---- Identity header inside the drawer ---- */
+.acc-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.acc-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.acc-id-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.acc-name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.account-chip-rating {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: var(--accent);
+.acc-method {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 100px;
+  width: fit-content;
 }
 
-/* =============================================================== *
- * Profile / account screen                                        *
- * =============================================================== */
-.profile-screen {
-  min-height: 100%;
+.acc-method.is-signed {
+  background: color-mix(in srgb, var(--hint-place) 22%, transparent);
+  color: var(--hint-place);
+}
+
+.acc-method.is-guest {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+/* Stats strip */
+.acc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.acc-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.9rem;
-  padding: 1.25rem 1rem 2.5rem;
-}
-
-.profile-card {
-  width: min(94vw, 460px);
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  padding: 1.1rem 1.2rem;
+  gap: 0.1rem;
+  padding: 0.7rem 0.3rem;
   background: var(--surface);
   border: var(--control-border-width) solid var(--surface-border);
-  border-radius: var(--surface-radius);
+  border-radius: var(--control-radius);
 }
 
-.profile-heading {
-  margin: 0;
+.acc-stat-value {
   font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-strong);
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--accent);
 }
 
-.profile-muted {
+.acc-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Sections */
+.acc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.acc-heading {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.acc-muted {
   font-size: 0.84rem;
   line-height: 1.5;
   color: var(--text-muted);
   margin: 0;
 }
 
-.profile-value {
+.acc-value {
   font-size: 0.9rem;
   color: var(--text);
 }
 
-/* Identity header */
-.profile-identity {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas: 'avatar id' 'stats stats';
-  gap: 0.8rem;
-  align-items: center;
-}
-
-.profile-avatar {
-  grid-area: avatar;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.2rem;
-  height: 3.2rem;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.5rem;
-}
-
-.profile-id-text {
-  grid-area: id;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.profile-name {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text-strong);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-method {
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  padding: 0.12rem 0.5rem;
-  border-radius: 100px;
-  width: fit-content;
-}
-
-.profile-method.is-signed {
-  background: color-mix(in srgb, var(--hint-place) 22%, transparent);
-  color: var(--hint-place);
-}
-
-.profile-method.is-guest {
-  background: var(--surface-2);
-  color: var(--text-muted);
-}
-
-.profile-stats {
-  grid-area: stats;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.3rem;
-}
-
-.profile-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 0.6rem 0.3rem;
-  background: var(--surface-2);
-  border-radius: var(--control-radius);
-}
-
-.stat-value {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: var(--accent);
-}
-
-.stat-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-/* Rows + stacks inside cards */
-.profile-row {
+.acc-row {
   display: flex;
   gap: 0.5rem;
 }
 
-.profile-input {
+.acc-grow {
   flex: 1;
   min-width: 0;
 }
 
-.profile-stack {
+.acc-stack {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.profile-line {
+.acc-line {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 0.5rem;
 }
 
-.profile-setting {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-/* Generic field used across the profile forms */
+/* Generic field (shared with profile forms) */
 .field {
   padding: 0.6rem 0.7rem;
   font: inherit;
@@ -1637,8 +1714,8 @@
 }
 
 /* Danger zone */
-.profile-danger {
-  border-color: color-mix(in srgb, #ff5a6e 45%, var(--surface-border));
+.acc-danger {
+  border-top-color: color-mix(in srgb, #ff5a6e 40%, var(--surface-border));
 }
 
 .btn-danger {
@@ -1653,10 +1730,16 @@
   color: #fff;
 }
 
-.profile-notice {
-  width: min(94vw, 460px);
+.acc-notice {
   font-size: 0.84rem;
   color: var(--text-muted);
   text-align: center;
   padding: 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-panel,
+  .drawer-scrim {
+    transition: none;
+  }
 }
