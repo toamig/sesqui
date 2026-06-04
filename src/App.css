@@ -855,3 +855,95 @@
   color: var(--text-muted);
   line-height: 1.4;
 }
+
+/* Rating change shown after a rated online game ends. */
+.rating-line {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+  padding: 0.2rem 0.6rem;
+}
+
+/* ---- Leaderboard (lobby) ---- */
+.leaderboard {
+  width: min(92vw, 420px);
+}
+
+.leaderboard-toggle {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--control-radius);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.leaderboard-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.leaderboard-body {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.4rem;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: var(--surface-radius);
+}
+
+.leaderboard-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.6rem;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.88rem;
+}
+
+.leaderboard-row:nth-child(odd) {
+  background: color-mix(in srgb, var(--surface-border) 30%, transparent);
+  border-radius: 6px;
+}
+
+.lb-rank {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.lb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.lb-record {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.lb-rating {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+}

@@ -28,7 +28,19 @@ export function createSupabaseTransport(): TransportFactory {
 
     // `self: false` means we never receive our own broadcasts (matches the
     // LocalTransport contract). Channel name namespaces the room.
-    const channel = client.channel(`sesqui-room-${room}`, {
+    const topic = `sesqui-room-${room}`
+
+    // Supabase rejects a second channel with the same topic, so a subscribe
+    // hangs if a stale channel for this room is still attached (e.g. React
+    // StrictMode mounts the connection effect twice, or a fast reconnect).
+    // Remove any existing channel for this topic before creating a fresh one.
+    for (const existing of client.getChannels()) {
+      if (existing.topic === `realtime:${topic}` || existing.topic === topic) {
+        await client.removeChannel(existing)
+      }
+    }
+
+    const channel = client.channel(topic, {
       config: { broadcast: { self: false } },
     })
 

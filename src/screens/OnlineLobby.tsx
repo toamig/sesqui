@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { makeRoomCode, normalizeRoomCode } from '../online/protocol'
 import { isOnlineConfigured, onlineModeLabel } from '../online/config'
 import { AuthPanel } from '../components/AuthPanel'
+import { Leaderboard } from '../components/Leaderboard'
 
 interface OnlineLobbyProps {
   /** Join (or create) a room as host or guest. */
@@ -77,6 +78,8 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
           tabs of this browser. Open a second tab to test a full game.
         </p>
       )}
+
+      <Leaderboard />
 
       <button type="button" className="rules-link" onClick={onBack}>
         Back to local game

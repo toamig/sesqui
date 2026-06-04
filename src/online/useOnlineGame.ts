@@ -26,6 +26,7 @@ import {
   saveState,
 } from './gameStore'
 import { getSeatToken, resolveSeatToken } from './seat'
+import { settleGame, type RatingDelta } from './ratings'
 
 /** Connection lifecycle as the UI cares about it. */
 export type OnlineStatus =
@@ -54,6 +55,8 @@ export interface OnlineGame {
   myTurn: boolean
   /** True when this client is a read-only spectator (both seats were taken). */
   isSpectator: boolean
+  /** Server-settled rating result for the just-finished game, or null. */
+  ratingDelta: RatingDelta | null
   /** Submit a local action; relays to the opponent and applies locally. Returns
    *  false if it is not your turn or the game is over. */
   submitAction: (action: Action) => boolean
@@ -106,6 +109,10 @@ export function useOnlineGame(options: Options | null): OnlineGame {
   const seatTokenRef = useRef<string>(getSeatToken())
   const spectatorRef = useRef<boolean>(false)
   const roomRef = useRef<string>('')
+  // Layer 3d: guard so a finished game is settled (server-side win check + Elo)
+  // exactly once per game generation; the resulting rating delta for the UI.
+  const settleDoneRef = useRef<boolean>(false)
+  const [ratingDelta, setRatingDelta] = useState<RatingDelta | null>(null)
 
   const setLiveState = useCallback((next: GameState) => {
     stateRef.current = next
@@ -125,6 +132,8 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       const mine: Player = myRole === 'host' ? hostColor : otherPlayer(hostColor)
       myColorRef.current = mine
       spectatorRef.current = false
+      settleDoneRef.current = false
+      setRatingDelta(null)
       setMyColor(mine)
       const fresh = createInitialState()
       setLiveState(fresh)
@@ -159,7 +168,38 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       seqRef.current += 1
       setLiveState(next)
       if (persist && isStoreConfigured && roomRef.current) {
-        void saveState(roomRef.current, next, seqRef.current)
+        // Persist the move, then (if it ended the game) ask the server to
+        // settle. Ordering matters: finish_game reads the STORED board, so the
+        // save must land first. settle is idempotent server-side, so the other
+        // client calling too is harmless.
+        const room = roomRef.current
+        const settledRef = settleDoneRef
+        void saveState(room, next, seqRef.current).then(() => {
+          if (next.winner !== null && next.winner !== 'draw' && !settledRef.current) {
+            settledRef.current = true
+            void settleGame(room).then((delta) => {
+              if (delta?.ok) setRatingDelta(delta)
+            })
+          }
+        })
+      } else if (
+        !persist &&
+        next.winner !== null &&
+        next.winner !== 'draw' &&
+        isStoreConfigured &&
+        roomRef.current &&
+        !settleDoneRef.current
+      ) {
+        // Inbound winning move: the sender persisted + settles, but call settle
+        // too (idempotent) so this client also learns the rating delta. A small
+        // delay lets the sender's save land first.
+        settleDoneRef.current = true
+        const room = roomRef.current
+        window.setTimeout(() => {
+          void settleGame(room).then((delta) => {
+            if (delta?.ok && (delta.rated || delta.already)) setRatingDelta(delta)
+          })
+        }, 600)
       }
       return next
     },
@@ -507,6 +547,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     state,
     myTurn,
     isSpectator: status === 'spectating',
+    ratingDelta,
     submitAction,
     requestRematch,
     leave,

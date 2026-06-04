@@ -111,6 +111,17 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
     status === 'playing' || status === 'opponent-left' || status === 'spectating'
   const youAre = online.isSpectator ? 'a spectator' : myColor ? playerName(myColor) : null
 
+  /** "Rating 1200 -> 1216 (+16)" for this client's side, or null if unrated. */
+  const myRatingLine = (): string | null => {
+    const d = online.ratingDelta
+    if (!d?.ok || !d.rated || myColor === null || online.isSpectator) return null
+    const side = myColor === 'V' ? d.v : d.h
+    if (!side) return null
+    const change = side.new - side.old
+    const sign = change >= 0 ? '+' : ''
+    return `Rating ${side.old} → ${side.new} (${sign}${change})`
+  }
+
   return (
     <main className="game-screen online-screen">
       <header className="game-header">
@@ -188,6 +199,10 @@ export function OnlineScreen({ room, role, onLeave }: OnlineScreenProps) {
           disabled={online.isSpectator || !myTurn || state.winner !== null}
           onCellClick={handleCellClick}
         />
+      )}
+
+      {state.winner !== null && myRatingLine() && (
+        <div className="rating-line">{myRatingLine()}</div>
       )}
 
       <div className="controls">
