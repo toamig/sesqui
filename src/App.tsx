@@ -9,6 +9,7 @@ import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
 import { AccountButton } from './components/AccountButton'
 import { AccountDrawer } from './components/AccountDrawer'
+import { handleOAuthRedirect } from './online/auth'
 import { normalizeRoomCode } from './online/protocol'
 import { applySkin, readStoredSkin } from './theme'
 import type { SkinId } from './theme'
@@ -54,9 +55,14 @@ export default function App() {
     applySkin(next)
   }
 
-  // Once an invite link has been consumed, strip ?room= from the URL so a
-  // refresh doesn't force-rejoin and the address bar stays clean.
+  // On mount: complete any Google OAuth return (exchange ?code= for a session,
+  // clean the URL), then strip a consumed ?room= invite param. If we just came
+  // back from a Google sign-in, reopen the account drawer so the player sees
+  // their now-signed-in account.
   useEffect(() => {
+    handleOAuthRedirect().then((wasOAuth) => {
+      if (wasOAuth) setAccountOpen(true)
+    })
     if (invite && typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.delete('room')

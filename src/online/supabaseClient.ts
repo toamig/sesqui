@@ -35,6 +35,12 @@ export function getSupabase(): Promise<SupabaseClient | null> {
             persistSession: true,
             autoRefreshToken: true,
             storageKey: 'sesqui-auth',
+            // Parse the OAuth result on return from Google and establish the
+            // session automatically.
+            detectSessionInUrl: true,
+            // PKCE returns a ?code= query param (not a #fragment), which is the
+            // more secure flow and behaves better under a subpath like /sesqui/.
+            flowType: 'pkce',
           },
           realtime: { params: { eventsPerSecond: 20 } },
         }),

@@ -166,16 +166,75 @@ export async function deleteAccount(): Promise<{ ok: boolean; error?: string }> 
   return { ok: true }
 }
 
-/** Upgrade the current anonymous user via Google OAuth, keeping the same uid.
- *  Redirects the browser; resolves only if the redirect could not start. */
+/** The URL Google returns to after consent. Uses the current origin + path so it
+ *  works for both local dev (http://localhost:5173/) and the live subpath
+ *  (https://migueltechlead.pt/sesqui/). Must be listed in Supabase Auth ->
+ *  URL Configuration -> Redirect URLs. */
+function oauthRedirectTo(): string {
+  return window.location.origin + window.location.pathname
+}
+
+/** Continue with Google.
+ *
+ *  Two cases:
+ *   - The current user is anonymous -> LINK Google to that same uid so their
+ *     guest progress (games, rating) carries over.
+ *   - Linking fails because that Google account already exists elsewhere, OR the
+ *     user isn't anonymous -> fall back to a normal Google SIGN-IN.
+ *
+ *  Either way the browser redirects to Google and returns to oauthRedirectTo();
+ *  this resolves early only if the redirect could not even start. */
 export async function linkGoogle(): Promise<{ ok: boolean; error?: string }> {
   const supabase = await getSupabase()
   if (!supabase) return { ok: false, error: 'Backend not configured' }
-  const { error } = await supabase.auth.linkIdentity({
+
+  const { data: sess } = await supabase.auth.getUser()
+  const anon = isAnonymous(sess.user)
+
+  if (anon) {
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: oauthRedirectTo() },
+    })
+    if (!error) return { ok: true }
+    // Manual-linking disabled, or this Google account is already taken: fall
+    // through to a plain sign-in below.
+  }
+
+  const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname },
+    options: { redirectTo: oauthRedirectTo() },
   })
   return error ? { ok: false, error: error.message } : { ok: true }
+}
+
+/** Handle the redirect back from a Google (PKCE) sign-in: exchange the ?code=
+ *  for a session, then strip the OAuth params so the address bar is clean and a
+ *  refresh doesn't re-trigger anything. No-op when there's no OAuth code/error.
+ *  Returns true when an OAuth return was handled. */
+export async function handleOAuthRedirect(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  const oauthError = params.get('error') || params.get('error_description')
+  if (!code && !oauthError) return false
+
+  const supabase = await getSupabase()
+  if (supabase && code) {
+    try {
+      await supabase.auth.exchangeCodeForSession(code)
+    } catch {
+      // If the client already auto-exchanged via detectSessionInUrl, this throws
+      // harmlessly; the session is established either way.
+    }
+  }
+  // Clean the URL: drop code / state / error params, keep everything else.
+  const url = new URL(window.location.href)
+  for (const k of ['code', 'state', 'error', 'error_description', 'error_code']) {
+    url.searchParams.delete(k)
+  }
+  window.history.replaceState({}, '', url.toString())
+  return true
 }
 
 /** Sign out and immediately re-establish an anonymous identity, so online play
