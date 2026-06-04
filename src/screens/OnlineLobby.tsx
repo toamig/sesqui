@@ -1,11 +1,10 @@
-// Online lobby: create a room or join one by code. Pure UI -- it only collects
-// the room code + role and hands them up; all networking lives in the hook.
+// Play a Friend: create a private room or join one by code. Pure UI -- it only
+// collects the room code + role and hands them up; all networking lives in the
+// hook. Reached from the online hub; back returns there.
 
 import { useState } from 'react'
 import { makeRoomCode, normalizeRoomCode } from '../online/protocol'
 import { isOnlineConfigured, onlineModeLabel } from '../online/config'
-import { AuthPanel } from '../components/AuthPanel'
-import { Leaderboard } from '../components/Leaderboard'
 
 interface OnlineLobbyProps {
   /** Join (or create) a room as host or guest. */
@@ -27,21 +26,20 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
   return (
     <main className="online-lobby">
       <div className="screen-topbar">
-        <button type="button" className="icon-back" onClick={onBack} aria-label="Back to menu">
-          <span aria-hidden>←</span> Menu
+        <button type="button" className="icon-back" onClick={onBack} aria-label="Back to online">
+          <span aria-hidden>←</span> Online
         </button>
-        <span className="screen-title">Play Online</span>
+        <span className="screen-title">Play a Friend</span>
         <span className="topbar-spacer" aria-hidden />
       </div>
 
       <header className="game-header">
-        <h1>Play Online</h1>
+        <h1>Play a Friend</h1>
         <p className="subtitle">
-          Create a room and share the code, or join a friend&apos;s room.
+          Create a room and share the code, or join a friend&apos;s room. Friendly
+          games, never ranked.
         </p>
       </header>
-
-      <AuthPanel active />
 
       <div className="lobby-card">
         <button type="button" className="btn btn-primary lobby-create" onClick={host}>
@@ -86,8 +84,6 @@ export function OnlineLobby({ onEnter, onBack }: OnlineLobbyProps) {
           tabs of this browser. Open a second tab to test a full game.
         </p>
       )}
-
-      <Leaderboard />
     </main>
   )
 }

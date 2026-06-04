@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { MainMenu } from './screens/MainMenu'
 import { GameScreen } from './screens/GameScreen'
 import { RulesScreen } from './screens/RulesScreen'
+import { OnlineHub } from './screens/OnlineHub'
+import type { OnlineChoice } from './screens/OnlineHub'
 import { OnlineLobby } from './screens/OnlineLobby'
+import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
 import { normalizeRoomCode } from './online/protocol'
 import { applySkin, readStoredSkin } from './theme'
@@ -10,7 +13,7 @@ import type { SkinId } from './theme'
 import './App.css'
 
 type LocalMode = 'pvp' | 'ai' | 'watch'
-type View = 'menu' | 'game' | 'rules' | 'lobby' | 'online'
+type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online'
 
 interface RoomSession {
   room: string
@@ -25,12 +28,23 @@ function readInviteRoom(): RoomSession | null {
   return code.length >= 4 ? { room: code, role: 'guest' } : null
 }
 
+/** Dev-only deep link to a screen for visual testing (?screen=online-hub etc).
+ *  Stripped from production builds so it never affects real users. */
+function readDevScreen(): View | null {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null
+  const s = new URLSearchParams(window.location.search).get('screen')
+  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match']
+  return (allowed as string[]).includes(s ?? '') ? (s as View) : null
+}
+
 export default function App() {
   const [skin, setSkin] = useState<SkinId>(readStoredSkin)
   const invite = readInviteRoom()
-  const [view, setView] = useState<View>(invite ? 'online' : 'menu')
+  const devScreen = readDevScreen()
+  const [view, setView] = useState<View>(devScreen ?? (invite ? 'online' : 'menu'))
   const [session, setSession] = useState<RoomSession | null>(invite)
   const [localMode, setLocalMode] = useState<LocalMode>('pvp')
+  const [matchRanked, setMatchRanked] = useState(false)
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -61,7 +75,7 @@ export default function App() {
 
   /** Menu choices route to the right screen. */
   const handleMenuSelect = (target: 'online' | 'pvp' | 'ai' | 'watch' | 'rules') => {
-    if (target === 'online') setView('lobby')
+    if (target === 'online') setView('online-hub')
     else if (target === 'rules') setView('rules')
     else {
       setLocalMode(target)
@@ -69,12 +83,29 @@ export default function App() {
     }
   }
 
+  /** Online hub choices: friend room, or casual/ranked matchmaking. */
+  const handleOnlineChoice = (choice: OnlineChoice) => {
+    if (choice === 'friend') setView('lobby')
+    else {
+      setMatchRanked(choice === 'ranked')
+      setView('match')
+    }
+  }
+
   if (view === 'rules') {
     return <RulesScreen onBack={() => setView('menu')} />
   }
 
+  if (view === 'online-hub') {
+    return <OnlineHub onChoose={handleOnlineChoice} onBack={() => setView('menu')} />
+  }
+
   if (view === 'lobby') {
-    return <OnlineLobby onEnter={enterRoom} onBack={() => setView('menu')} />
+    return <OnlineLobby onEnter={enterRoom} onBack={() => setView('online-hub')} />
+  }
+
+  if (view === 'match') {
+    return <MatchSearch ranked={matchRanked} onCancel={() => setView('online-hub')} />
   }
 
   if (view === 'online' && session) {
