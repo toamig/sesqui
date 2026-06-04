@@ -6,6 +6,8 @@
 
 import type { ReactNode } from 'react'
 import { SkinPicker } from '../components/SkinPicker'
+import { isSupabaseConfigured } from '../online/auth'
+import { useAuth } from '../online/useAuth'
 import type { SkinId } from '../theme'
 
 type MenuTarget = 'online' | 'pvp' | 'ai' | 'watch' | 'rules'
@@ -14,6 +16,8 @@ interface MainMenuProps {
   skin: SkinId
   onSkinChange: (id: SkinId) => void
   onSelect: (target: MenuTarget) => void
+  /** Open the account / profile screen. */
+  onProfile: () => void
 }
 
 interface ItemProps {
@@ -74,9 +78,30 @@ const IconWatch = (
   </svg>
 )
 
-export function MainMenu({ skin, onSkinChange, onSelect }: MainMenuProps) {
+export function MainMenu({ skin, onSkinChange, onSelect, onProfile }: MainMenuProps) {
+  const auth = useAuth(isSupabaseConfigured)
+
   return (
     <main className="main-menu">
+      {isSupabaseConfigured && (
+        <button
+          type="button"
+          className="account-chip"
+          onClick={onProfile}
+          aria-label="Account"
+        >
+          <span className="account-chip-avatar" aria-hidden>
+            {auth.ready ? auth.label.charAt(0).toUpperCase() : '·'}
+          </span>
+          <span className="account-chip-name">
+            {auth.ready ? auth.label : '…'}
+            {auth.ready && auth.rating && (
+              <span className="account-chip-rating">{auth.rating.rating}</span>
+            )}
+          </span>
+        </button>
+      )}
+
       <header className="menu-header">
         <h1 className="menu-wordmark">Sesqui</h1>
         <p className="menu-tagline">A connection game of two directions.</p>

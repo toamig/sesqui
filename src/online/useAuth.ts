@@ -5,12 +5,21 @@ import { useCallback, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   ensureSignedIn,
+  hasPassword,
   isAnonymous,
   isSupabaseConfigured,
+  linkedProviders,
   onAuthChange,
   userLabel,
 } from './auth'
 import { loadMyProfile } from './profile'
+import { myRating } from './ratings'
+
+export interface RatingSummary {
+  rating: number
+  wins: number
+  losses: number
+}
 
 export interface AuthState {
   /** True once an identity (anon or real) is established. */
@@ -20,7 +29,15 @@ export interface AuthState {
   anonymous: boolean
   /** Display name, else email handle, else "Guest". */
   label: string
-  /** Re-pull the profile (after setting a display name). */
+  /** The account's email, if any. */
+  email: string | null
+  /** True when the account has an email+password identity (password change ok). */
+  hasPassword: boolean
+  /** Linked providers (e.g. 'email', 'google'). */
+  providers: string[]
+  /** Server-computed rating summary, or null if unrated / not loaded. */
+  rating: RatingSummary | null
+  /** Re-pull profile + rating (after a change). */
   refreshProfile: () => void
 }
 
@@ -28,9 +45,11 @@ export function useAuth(active: boolean): AuthState {
   const [ready, setReady] = useState(!isSupabaseConfigured)
   const [user, setUser] = useState<User | null>(null)
   const [profileName, setProfileName] = useState<string | null>(null)
+  const [rating, setRating] = useState<RatingSummary | null>(null)
 
   const refreshProfile = useCallback(() => {
     loadMyProfile().then((p) => setProfileName(p?.display_name ?? null))
+    myRating().then(setRating)
   }, [])
 
   useEffect(() => {
@@ -64,6 +83,10 @@ export function useAuth(active: boolean): AuthState {
     user,
     anonymous: isAnonymous(user),
     label: userLabel(user, profileName),
+    email: user?.email ?? null,
+    hasPassword: hasPassword(user),
+    providers: linkedProviders(user),
+    rating,
     refreshProfile,
   }
 }

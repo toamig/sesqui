@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { MainMenu } from './screens/MainMenu'
 import { GameScreen } from './screens/GameScreen'
 import { RulesScreen } from './screens/RulesScreen'
+import { ProfileScreen } from './screens/ProfileScreen'
 import { OnlineHub } from './screens/OnlineHub'
 import type { OnlineChoice } from './screens/OnlineHub'
 import { OnlineLobby } from './screens/OnlineLobby'
@@ -13,7 +14,7 @@ import type { SkinId } from './theme'
 import './App.css'
 
 type LocalMode = 'pvp' | 'ai' | 'watch'
-type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online'
+type View = 'menu' | 'game' | 'rules' | 'profile' | 'online-hub' | 'lobby' | 'match' | 'online'
 
 interface RoomSession {
   room: string
@@ -33,7 +34,7 @@ function readInviteRoom(): RoomSession | null {
 function readDevScreen(): View | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null
   const s = new URLSearchParams(window.location.search).get('screen')
-  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match']
+  const allowed: View[] = ['menu', 'game', 'rules', 'profile', 'online-hub', 'lobby', 'match']
   return (allowed as string[]).includes(s ?? '') ? (s as View) : null
 }
 
@@ -96,6 +97,12 @@ export default function App() {
     return <RulesScreen onBack={() => setView('menu')} />
   }
 
+  if (view === 'profile') {
+    return (
+      <ProfileScreen skin={skin} onSkinChange={changeSkin} onBack={() => setView('menu')} />
+    )
+  }
+
   if (view === 'online-hub') {
     return <OnlineHub onChoose={handleOnlineChoice} onBack={() => setView('menu')} />
   }
@@ -129,5 +136,12 @@ export default function App() {
     )
   }
 
-  return <MainMenu skin={skin} onSkinChange={changeSkin} onSelect={handleMenuSelect} />
+  return (
+    <MainMenu
+      skin={skin}
+      onSkinChange={changeSkin}
+      onSelect={handleMenuSelect}
+      onProfile={() => setView('profile')}
+    />
+  )
 }

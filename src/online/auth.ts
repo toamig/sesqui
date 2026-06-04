@@ -84,6 +84,88 @@ export async function linkEmail(email: string): Promise<{ ok: boolean; error?: s
   return error ? { ok: false, error: error.message } : { ok: true }
 }
 
+/** Upgrade the current (anonymous) user to a permanent email+password account,
+ *  keeping the same uid so games/rating carry over. Depending on the project's
+ *  "confirm email" setting this may require the user to click a confirmation
+ *  link before the password is usable. */
+export async function addPassword(
+  email: string,
+  password: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  if (!supabase) return { ok: false, error: 'Backend not configured' }
+  const { error } = await supabase.auth.updateUser({ email, password })
+  return error ? { ok: false, error: error.message } : { ok: true }
+}
+
+/** Sign in with email + password (a returning password account). On success the
+ *  realtime socket auth is refreshed so online play works immediately. */
+export async function signInPassword(
+  email: string,
+  password: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  if (!supabase) return { ok: false, error: 'Backend not configured' }
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) return { ok: false, error: error.message }
+  const token = data.session?.access_token
+  if (token) {
+    try {
+      supabase.realtime.setAuth(token)
+    } catch {
+      // older client signature; broadcast still works
+    }
+  }
+  return { ok: true }
+}
+
+/** Change the password for the signed-in password account. */
+export async function changePassword(
+  newPassword: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  if (!supabase) return { ok: false, error: 'Backend not configured' }
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  return error ? { ok: false, error: error.message } : { ok: true }
+}
+
+/** Send a password-reset email (for a user who forgot it). */
+export async function resetPassword(email: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  if (!supabase) return { ok: false, error: 'Backend not configured' }
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  })
+  return error ? { ok: false, error: error.message } : { ok: true }
+}
+
+/** True when the user signed in with email+password (so password change applies).
+ *  Detected via the 'email' identity provider on the user. */
+export function hasPassword(user: User | null): boolean {
+  const u = user as (User & { identities?: { provider: string }[] }) | null
+  if (!u || isAnonymous(u)) return false
+  return (u.identities ?? []).some((i) => i.provider === 'email')
+}
+
+/** Which third-party / email providers are linked to this account. */
+export function linkedProviders(user: User | null): string[] {
+  const u = user as (User & { identities?: { provider: string }[] }) | null
+  if (!u) return []
+  return [...new Set((u.identities ?? []).map((i) => i.provider))]
+}
+
+/** Permanently delete the account and all its data via a server function, then
+ *  drop back to a fresh anonymous identity so the app keeps working. */
+export async function deleteAccount(): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await getSupabase()
+  if (!supabase) return { ok: false, error: 'Backend not configured' }
+  const { error } = await supabase.rpc('delete_account')
+  if (error) return { ok: false, error: error.message }
+  await supabase.auth.signOut()
+  await ensureSignedIn()
+  return { ok: true }
+}
+
 /** Upgrade the current anonymous user via Google OAuth, keeping the same uid.
  *  Redirects the browser; resolves only if the redirect could not start. */
 export async function linkGoogle(): Promise<{ ok: boolean; error?: string }> {
