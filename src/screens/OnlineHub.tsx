@@ -1,7 +1,8 @@
-// Online hub: the three ways to play online. Flat, fixed cards (no expansions).
+// Online hub: the ways to play online. Flat, fixed cards (no expansions).
 //   - Play a Friend  -> private room by code (always casual, no login needed)
 //   - Casual Match   -> matchmaking, unranked, requires sign-in
-//   - Ranked Match   -> matchmaking, Elo, requires sign-in
+//   - Ranked Match   -> disabled "coming soon" until the ranking backend lands,
+//                       so players aren't dropped into a feature that isn't real
 // Identity / sign-in lives in the global account drawer (the avatar, top-right),
 // so a guest who taps a locked card is sent there.
 
@@ -22,18 +23,23 @@ interface CardProps {
   icon: ReactNode
   title: string
   subtitle: string
-  onClick: () => void
-  variant?: 'primary' | 'ranked'
+  onClick?: () => void
+  variant?: 'primary'
   badge?: ReactNode
+  /** Sign-in gate: tappable, but a guest tap routes to sign-in. */
   locked?: boolean
+  /** Not available yet (coming soon): shown but not selectable. */
+  disabled?: boolean
 }
 
-function HubCard({ icon, title, subtitle, onClick, variant, badge, locked }: CardProps) {
+function HubCard({ icon, title, subtitle, onClick, variant, badge, locked, disabled }: CardProps) {
   return (
     <button
       type="button"
-      className={`hub-card ${variant ? `hub-card-${variant}` : ''}`}
+      className={`hub-card ${variant ? `hub-card-${variant}` : ''} ${disabled ? 'hub-card-disabled' : ''}`}
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled || undefined}
     >
       <span className="hub-icon" aria-hidden>
         {icon}
@@ -53,9 +59,11 @@ function HubCard({ icon, title, subtitle, onClick, variant, badge, locked }: Car
         </span>
         <span className="hub-subtitle">{subtitle}</span>
       </span>
-      <span className="hub-arrow" aria-hidden>
-        →
-      </span>
+      {!disabled && (
+        <span className="hub-arrow" aria-hidden>
+          →
+        </span>
+      )}
     </button>
   )
 }
@@ -124,11 +132,9 @@ export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
         <HubCard
           icon={IconRanked}
           title="Ranked Match"
-          subtitle={signedIn ? 'Compete for Elo and rank up' : 'Sign in to play ranked'}
-          onClick={() => chooseMatch('ranked')}
-          variant="ranked"
-          badge={<span className="hub-badge hub-badge-rank">Elo</span>}
-          locked={!signedIn}
+          subtitle="Competitive ladder is coming soon"
+          badge={<span className="hub-badge hub-badge-soon">Soon</span>}
+          disabled
         />
       </nav>
     </main>

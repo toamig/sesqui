@@ -1063,6 +1063,18 @@
   border-color: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
+/* Coming-soon mode: visible but inert. Dimmed, no hover lift, default cursor. */
+.hub-card-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.hub-card-disabled:hover {
+  transform: none;
+  border-color: var(--surface-border);
+  box-shadow: none;
+}
+
 .hub-icon {
   display: inline-flex;
   align-items: center;
@@ -1125,6 +1137,12 @@
 .hub-badge-rank {
   background: var(--accent);
   color: var(--accent-contrast);
+}
+
+/* "Soon" badge for a not-yet-available mode (ranked). Quiet, not a CTA. */
+.hub-badge-soon {
+  background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+  color: var(--text-muted);
 }
 
 /* Lock glyph next to a gated card's title (casual/ranked when signed out).
@@ -1467,6 +1485,23 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* "View full profile" link-button under the drawer stats. */
+.acc-profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.acc-profile-arrow {
+  transition: transform 0.18s ease;
+}
+
+.acc-profile-btn:hover .acc-profile-arrow {
+  transform: translateX(3px);
 }
 
 /* Sections */

@@ -7,6 +7,7 @@ import type { OnlineChoice } from './screens/OnlineHub'
 import { OnlineLobby } from './screens/OnlineLobby'
 import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
+import { ProfileScreen } from './screens/ProfileScreen'
 import { AccountButton } from './components/AccountButton'
 import { AccountDrawer } from './components/AccountDrawer'
 import { handleOAuthRedirect } from './online/auth'
@@ -16,7 +17,7 @@ import type { SkinId } from './theme'
 import './App.css'
 
 type LocalMode = 'pvp' | 'ai' | 'watch'
-type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online'
+type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online' | 'profile'
 
 interface RoomSession {
   room: string
@@ -36,7 +37,7 @@ function readInviteRoom(): RoomSession | null {
 function readDevScreen(): View | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null
   const s = new URLSearchParams(window.location.search).get('screen')
-  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match']
+  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match', 'profile']
   return (allowed as string[]).includes(s ?? '') ? (s as View) : null
 }
 
@@ -49,6 +50,8 @@ export default function App() {
   const [localMode, setLocalMode] = useState<LocalMode>('pvp')
   const [matchRanked, setMatchRanked] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  // Where "Back" returns to from the profile page (the screen it was opened from).
+  const [profileReturn, setProfileReturn] = useState<View>('menu')
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -101,6 +104,14 @@ export default function App() {
     }
   }
 
+  /** Open the full profile page from the account drawer, remembering where we
+   *  were so "Back" returns there. */
+  const openProfile = () => {
+    setProfileReturn(view)
+    setAccountOpen(false)
+    setView('profile')
+  }
+
   // The active screen. The account button + drawer render globally on top of
   // whichever screen this is, so the account is reachable from anywhere without
   // navigating away (you keep your place, even mid-game).
@@ -128,6 +139,13 @@ export default function App() {
         onLeave={leaveRoom}
       />
     )
+  } else if (view === 'profile') {
+    screen = (
+      <ProfileScreen
+        onBack={() => setView(profileReturn)}
+        onAccount={() => setAccountOpen(true)}
+      />
+    )
   } else if (view === 'game') {
     screen = (
       <GameScreen
@@ -147,6 +165,7 @@ export default function App() {
       <AccountDrawer
         open={accountOpen}
         onClose={() => setAccountOpen(false)}
+        onViewProfile={openProfile}
         skin={skin}
         onSkinChange={changeSkin}
       />

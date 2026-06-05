@@ -69,7 +69,12 @@ export async function createGame(row: {
 }
 
 /** Reset an existing row to a fresh game (rematch): bump game_id, reset state +
- *  seq, keep seat assignments. Best-effort. */
+ *  seq, keep seat assignments. Best-effort.
+ *
+ *  Also clears the settlement marker (settled_at / winner_color) so the NEW game
+ *  settles and records its own match-history row when it ends. Safe: the board
+ *  is reset to empty here too, so a re-settle of the old generation can't double
+ *  count (finish_game finds no connection on an empty board). */
 export async function resetGame(args: {
   code: string
   gameId: number
@@ -79,7 +84,13 @@ export async function resetGame(args: {
   if (!client) return
   await client
     .from(TABLE)
-    .update({ game_id: args.gameId, state: args.state, seq: 0 })
+    .update({
+      game_id: args.gameId,
+      state: args.state,
+      seq: 0,
+      settled_at: null,
+      winner_color: null,
+    })
     .eq('code', args.code)
 }
 

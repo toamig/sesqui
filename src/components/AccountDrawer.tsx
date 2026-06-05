@@ -24,11 +24,13 @@ import type { SkinId } from '../theme'
 interface AccountDrawerProps {
   open: boolean
   onClose: () => void
+  /** Navigate to the full profile page (stats + match history). */
+  onViewProfile: () => void
   skin: SkinId
   onSkinChange: (id: SkinId) => void
 }
 
-export function AccountDrawer({ open, onClose, skin, onSkinChange }: AccountDrawerProps) {
+export function AccountDrawer({ open, onClose, onViewProfile, skin, onSkinChange }: AccountDrawerProps) {
   // Auth initialises while the drawer is open. The shared Supabase client + the
   // persisted session are cached, so closing/reopening re-subscribes instantly
   // without redoing the network sign-in.
@@ -144,10 +146,6 @@ export function AccountDrawer({ open, onClose, skin, onSkinChange }: AccountDraw
           {isSupabaseConfigured && (
             <div className="acc-stats">
               <div className="acc-stat">
-                <span className="acc-stat-value">{auth.rating?.rating ?? '—'}</span>
-                <span className="acc-stat-label">Rating</span>
-              </div>
-              <div className="acc-stat">
                 <span className="acc-stat-value">{auth.rating?.wins ?? 0}</span>
                 <span className="acc-stat-label">Wins</span>
               </div>
@@ -155,7 +153,22 @@ export function AccountDrawer({ open, onClose, skin, onSkinChange }: AccountDraw
                 <span className="acc-stat-value">{auth.rating?.losses ?? 0}</span>
                 <span className="acc-stat-label">Losses</span>
               </div>
+              <div className="acc-stat">
+                <span className="acc-stat-value">
+                  {auth.rating ? auth.rating.wins + auth.rating.losses : 0}
+                </span>
+                <span className="acc-stat-label">Games</span>
+              </div>
             </div>
+          )}
+
+          {isSupabaseConfigured && (
+            <button type="button" className="btn acc-profile-btn" onClick={onViewProfile}>
+              View full profile
+              <span className="acc-profile-arrow" aria-hidden>
+                →
+              </span>
+            </button>
           )}
 
           {isSupabaseConfigured && (

@@ -1,0 +1,181 @@
+// Profile page: a player's dashboard. Identity, lifetime record, and recent
+// match history, all derived from the durable match_results table (so the stat
+// tiles and the history list always agree). Elo/rating is intentionally NOT
+// shown yet -- ranked play is still "coming soon", so the profile speaks only in
+// games / wins / losses, which are honest today.
+//
+// Reachable from the global account drawer ("View profile"). Fixed-layout, no
+// expansions, themed entirely through tokens so it renders in every skin.
+
+import { useEffect, useState } from 'react'
+import { isSupabaseConfigured } from '../online/auth'
+import { useAuth } from '../online/useAuth'
+import { myMatches, myMatchStats } from '../online/matches'
+import type { MatchRow, MatchStats } from '../online/matches'
+import './ProfileScreen.css'
+
+interface ProfileScreenProps {
+  onBack: () => void
+  /** Open the account drawer (sign in / manage account). */
+  onAccount: () => void
+}
+
+/** "March 2026" from an ISO date, or null if absent/unparseable. */
+function monthYear(iso?: string): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
+/** Compact "2h ago" style relative time. */
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const s = Math.max(0, Math.floor((Date.now() - then) / 1000))
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  const w = Math.floor(d / 7)
+  if (w < 5) return `${w}w ago`
+  const mo = Math.floor(d / 30)
+  if (mo < 12) return `${mo}mo ago`
+  return `${Math.floor(d / 365)}y ago`
+}
+
+export function ProfileScreen({ onBack, onAccount }: ProfileScreenProps) {
+  const auth = useAuth(true)
+  const [stats, setStats] = useState<MatchStats | null>(null)
+  const [matches, setMatches] = useState<MatchRow[] | null>(null)
+
+  const uid = auth.user?.id ?? null
+
+  // Pull stats + recent games once an identity is established. Async resolution
+  // (not a synchronous setState in the effect body) keeps the renders clean.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !auth.ready || !uid) return
+    let cancelled = false
+    void Promise.all([myMatchStats(), myMatches(20)]).then(([s, m]) => {
+      if (cancelled) return
+      setStats(s)
+      setMatches(m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [auth.ready, uid])
+
+  const methodLabel = auth.anonymous
+    ? 'Guest'
+    : auth.providers.includes('google')
+      ? 'Google'
+      : auth.hasPassword
+        ? 'Email & password'
+        : 'Email link'
+
+  const initial = auth.ready || !isSupabaseConfigured ? auth.label.charAt(0).toUpperCase() : '·'
+  const since = monthYear(auth.user?.created_at)
+  const winRate =
+    stats && stats.games > 0 ? `${Math.round((stats.wins / stats.games) * 100)}%` : '—'
+
+  const tiles: { value: string; label: string }[] = [
+    { value: stats ? String(stats.games) : '—', label: 'Games' },
+    { value: stats ? String(stats.wins) : '—', label: 'Wins' },
+    { value: stats ? String(stats.losses) : '—', label: 'Losses' },
+    { value: winRate, label: 'Win rate' },
+  ]
+
+  return (
+    <main className="profile-screen">
+      <div className="screen-topbar">
+        <button type="button" className="icon-back" onClick={onBack} aria-label="Back">
+          <span aria-hidden>←</span> Back
+        </button>
+        <span className="screen-title">Profile</span>
+        <span className="topbar-spacer" aria-hidden />
+      </div>
+
+      {!isSupabaseConfigured ? (
+        <p className="profile-offline">
+          Profiles live online. Add the backend keys to track your games.
+        </p>
+      ) : (
+        <>
+          <header className="profile-hero">
+            <span className="profile-avatar" aria-hidden>
+              {initial}
+            </span>
+            <h1 className="profile-name">{auth.label}</h1>
+            <div className="profile-meta">
+              <span className={`profile-method ${auth.anonymous ? 'is-guest' : 'is-signed'}`}>
+                {methodLabel}
+              </span>
+              {since && <span className="profile-since">Since {since}</span>}
+            </div>
+          </header>
+
+          {auth.anonymous && (
+            <div className="profile-guest" role="note">
+              <p className="profile-guest-text">
+                You're playing as a guest. Sign in to keep your stats and history across devices.
+              </p>
+              <button type="button" className="btn btn-primary" onClick={onAccount}>
+                Sign in
+              </button>
+            </div>
+          )}
+
+          <section className="profile-stats" aria-label="Record">
+            {tiles.map((t) => (
+              <div key={t.label} className="profile-tile">
+                <span className="profile-tile-value">{t.value}</span>
+                <span className="profile-tile-label">{t.label}</span>
+              </div>
+            ))}
+          </section>
+
+          <section className="profile-history">
+            <h2 className="profile-section-title">Recent games</h2>
+
+            {matches === null ? (
+              <p className="profile-hint">Loading your games…</p>
+            ) : matches.length === 0 ? (
+              <div className="profile-empty">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M3 9h18M8 4v16" />
+                </svg>
+                <p className="profile-empty-title">No games yet</p>
+                <p className="profile-hint">Play a friend online to start your history.</p>
+              </div>
+            ) : (
+              <ul className="mh-list">
+                {matches.map((m) => (
+                  <li key={m.id} className="mh-row">
+                    <span className={`mh-result is-${m.result}`} aria-hidden>
+                      {m.result === 'win' ? 'W' : 'L'}
+                    </span>
+                    <span className="mh-main">
+                      <span className="mh-opp">
+                        <span className="mh-vs">vs</span> {m.opponent}
+                      </span>
+                      <span className="mh-sub">
+                        Played {m.color === 'V' ? 'Vertical' : 'Horizontal'} ·{' '}
+                        {m.result === 'win' ? 'Won' : 'Lost'}
+                      </span>
+                    </span>
+                    <span className="mh-time">{relativeTime(m.playedAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+    </main>
+  )
+}
