@@ -10,7 +10,10 @@ import {
   MAX_PIECES,
 } from '../game/rules'
 import type { Action, Board as BoardModel, GameState, Player } from '../game/types'
-import { Difficulty } from '../game/ai'
+// Import the Difficulty enum from the lightweight contract module, NOT the
+// factory barrel ('../game/ai'), so the main bundle doesn't pull in the AI
+// implementations (incl. the neural net weights). The worker loads those.
+import { Difficulty } from '../game/ai/ai'
 
 type Mode = 'pvp' | 'ai' | 'watch'
 
@@ -37,7 +40,9 @@ const engineLabel = (d: Difficulty): string =>
       ? 'Heuristic'
       : d === Difficulty.Hard
         ? 'Alpha-Beta'
-        : 'Monte Carlo (MCTS)'
+        : d === Difficulty.Expert
+          ? 'Monte Carlo (MCTS)'
+          : 'Neural (AlphaZero)'
 
 const countPieces = (board: BoardModel, player: Player): number => {
   let n = 0
@@ -282,6 +287,7 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
                 <option value={Difficulty.Medium}>Heuristic</option>
                 <option value={Difficulty.Hard}>Alpha-Beta</option>
                 <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+                <option value={Difficulty.Neural}>Neural (AlphaZero)</option>
               </select>
             </div>
             <div className="control-group">
@@ -311,6 +317,7 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
                 <option value={Difficulty.Medium}>Heuristic</option>
                 <option value={Difficulty.Hard}>Alpha-Beta</option>
                 <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+                <option value={Difficulty.Neural}>Neural (AlphaZero)</option>
               </select>
             </div>
             <div className="control-group">
@@ -324,6 +331,7 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
                 <option value={Difficulty.Medium}>Heuristic</option>
                 <option value={Difficulty.Hard}>Alpha-Beta</option>
                 <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
+                <option value={Difficulty.Neural}>Neural (AlphaZero)</option>
               </select>
             </div>
           </>

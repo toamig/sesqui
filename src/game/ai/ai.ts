@@ -11,6 +11,7 @@ export const Difficulty = {
   Medium: 'medium',
   Hard: 'hard',
   Expert: 'expert',
+  Neural: 'neural',
 } as const
 
 export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty]

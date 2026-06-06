@@ -95,7 +95,7 @@ export function MainMenu({ onSelect }: MainMenuProps) {
         <MenuItem
           icon={IconComputer}
           title="vs Computer"
-          subtitle="Four engines, from gentle to ruthless"
+          subtitle="Five engines, from random to a trained neural net"
           onClick={() => onSelect('ai')}
         />
         <MenuItem

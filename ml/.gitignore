@@ -1,0 +1,4 @@
+# Generated training artifacts: never commit datasets or raw model dumps.
+data/
+models/
+*.ndjson

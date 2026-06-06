@@ -5,6 +5,7 @@ import { Difficulty, type AIPlayer } from './ai'
 import { HeuristicAI } from './heuristicAI'
 import { MctsAI } from './mctsAI'
 import { RandomAI } from './randomAI'
+import { createAZAI } from './azSearch'
 
 export function createAI(difficulty: Difficulty): AIPlayer {
   switch (difficulty) {
@@ -14,6 +15,8 @@ export function createAI(difficulty: Difficulty): AIPlayer {
       return new AlphaBetaAI({ timeMs: 1500 })
     case Difficulty.Expert:
       return new MctsAI({ timeMs: 1500 })
+    case Difficulty.Neural:
+      return createAZAI(1000)
     case Difficulty.Easy:
     default:
       return new RandomAI()

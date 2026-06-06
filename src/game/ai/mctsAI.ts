@@ -20,6 +20,13 @@ interface MctsOptions {
   rolloutCap?: number
   /** Max children kept per node; the rest are pruned by a quick distance eval. */
   maxChildren?: number
+  /** Difficulty label to report (defaults to Hard). */
+  difficulty?: Difficulty
+  /** Optional learned leaf evaluator. When provided, a leaf's value comes from
+   *  this function (a Vertical-perspective win probability in [0,1]) instead of a
+   *  random playout. This turns the search into value-network-guided MCTS
+   *  (AlphaZero-style): same tree, but a trained net replaces the rollout. */
+  valueFn?: (state: GameState) => number
 }
 
 /** Mover-perspective score of a state: shorter own distance and longer opponent
@@ -104,13 +111,15 @@ export class MctsAI implements AIPlayer {
   private readonly explore: number
   private readonly rolloutCap: number
   private readonly maxChildren: number
+  private readonly valueFn?: (state: GameState) => number
 
   constructor(options: MctsOptions = {}) {
-    this.difficulty = Difficulty.Hard
+    this.difficulty = options.difficulty ?? Difficulty.Hard
     this.timeMs = options.timeMs ?? 1500
     this.explore = options.explore ?? Math.SQRT2
     this.rolloutCap = options.rolloutCap ?? 30
     this.maxChildren = options.maxChildren ?? 12
+    this.valueFn = options.valueFn
   }
 
   chooseAction(state: GameState): Action | null {
@@ -142,6 +151,27 @@ export class MctsAI implements AIPlayer {
       if (child.visits > best.visits) best = child
     }
     return best ? best.action : actions[0]
+  }
+
+  /** Run the search and return each root action with its visit count. This is the
+   *  raw material for AlphaZero-style policy targets: the visit distribution is a
+   *  stronger, search-sharpened policy than the move actually played. Returns an
+   *  empty array at a terminal node, or a single entry when only one move exists. */
+  searchRoot(state: GameState): { action: Action; visits: number }[] {
+    const actions = state.winner === null ? getLegalActions(state) : []
+    if (actions.length === 0) return []
+    if (actions.length === 1) return [{ action: actions[0], visits: 1 }]
+
+    const root = makeNode(state, state.current, null, null, this.maxChildren)
+    const now = (): number =>
+      typeof performance !== 'undefined' ? performance.now() : Date.now()
+    const deadline = now() + this.timeMs
+    while (now() < deadline) {
+      const leaf = this.select(root)
+      const vScore = this.rollout(leaf.state)
+      this.backup(leaf, vScore)
+    }
+    return root.children.map((c) => ({ action: c.action as Action, visits: c.visits }))
   }
 
   /** Descend by UCT, expanding the first node that still has an untried action. */
@@ -178,8 +208,14 @@ export class MctsAI implements AIPlayer {
     return best
   }
 
-  /** Heuristic-biased playout returning a Vertical-perspective score in [0, 1]. */
+  /** Heuristic-biased playout returning a Vertical-perspective score in [0, 1].
+   *  With a learned valueFn, the playout is skipped entirely: the leaf's value is
+   *  the net's evaluation (or the exact result if the leaf is terminal). */
   private rollout(start: GameState): number {
+    if (this.valueFn) {
+      const terminal = terminalVScore(start)
+      return terminal !== null ? terminal : this.valueFn(start)
+    }
     let state = start
     for (let ply = 0; ply < this.rolloutCap; ply++) {
       const terminal = terminalVScore(state)
