@@ -7,9 +7,12 @@ import { getSupabase } from './supabaseClient'
 export interface Profile {
   id: string
   display_name: string | null
+  /** Server-controlled admin flag; unlocks admin-only UI. */
+  is_admin: boolean
 }
 
-/** Load the signed-in user's profile row (null if none / unconfigured). */
+/** Load the signed-in user's profile row (null if none / unconfigured). Uses
+ *  select('*') so it tolerates the is_admin column not existing yet (older DB). */
 export async function loadMyProfile(): Promise<Profile | null> {
   const supabase = await getSupabase()
   if (!supabase) return null
@@ -17,11 +20,12 @@ export async function loadMyProfile(): Promise<Profile | null> {
   if (!auth.user) return null
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, display_name')
+    .select('*')
     .eq('id', auth.user.id)
     .maybeSingle()
   if (error || !data) return null
-  return data as Profile
+  const row = data as { id: string; display_name: string | null; is_admin?: boolean }
+  return { id: row.id, display_name: row.display_name ?? null, is_admin: row.is_admin === true }
 }
 
 /** Set the signed-in user's display name. Upserts so it works even if the

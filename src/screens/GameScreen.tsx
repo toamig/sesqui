@@ -14,6 +14,7 @@ import type { Action, Board as BoardModel, GameState, Player } from '../game/typ
 // factory barrel ('../game/ai'), so the main bundle doesn't pull in the AI
 // implementations (incl. the neural net weights). The worker loads those.
 import { Difficulty } from '../game/ai/ai'
+import { useAuth } from '../online/useAuth'
 
 type Mode = 'pvp' | 'ai' | 'watch'
 
@@ -63,6 +64,12 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
   // The last atomic action drives the arrival animation for the piece it placed
   // or moved; cleared on reset/undo so nothing replays.
   const [lastAction, setLastAction] = useState<Action | null>(null)
+  // Admin-only "hand the game to the AI" tool: when on, the engine plays the
+  // human's side too (you watch from the current position).
+  const [handedOver, setHandedOver] = useState(false)
+  // Auth is read only for the admin flag (shared, already-initialised session).
+  const auth = useAuth(mode === 'ai')
+  const isAdmin = auth.isAdmin
 
   const workerRef = useRef<Worker | null>(null)
   const reqIdRef = useRef(0)
@@ -91,10 +98,11 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
     }
   }, [])
 
-  const humanCanAct = mode === 'pvp' || (mode === 'ai' && state.current === humanColor)
+  const humanCanAct =
+    mode === 'pvp' || (mode === 'ai' && !handedOver && state.current === humanColor)
   const aiToMove =
     state.winner === null &&
-    (mode === 'ai' ? state.current !== humanColor : mode === 'watch')
+    (mode === 'ai' ? handedOver || state.current !== humanColor : mode === 'watch')
   // Which engine moves now: per-side in watch mode, otherwise the AI difficulty.
   const currentEngine: Difficulty =
     mode === 'watch' ? (state.current === 'V' ? vEngine : hEngine) : difficulty
@@ -172,11 +180,24 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
     setHistory([])
     setSelected(null)
     setLastAction(null)
+    setHandedOver(false)
     reqIdRef.current += 1 // discard any AI reply still in flight
     thinkingRef.current = false
   }
 
   const newGame = () => resetWith({})
+
+  /** Hand the human's side to the AI from the current position (admin tool). */
+  const handToAI = () => {
+    setSelected(null)
+    setHandedOver(true)
+  }
+  /** Resume playing your own side; cancel any AI move in flight for it. */
+  const takeControlBack = () => {
+    setHandedOver(false)
+    reqIdRef.current += 1
+    thinkingRef.current = false
+  }
 
   const undo = () => {
     if (history.length === 0) return
@@ -252,6 +273,12 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
           )}
         </div>
       </div>
+
+      {mode === 'ai' && handedOver && state.winner === null && (
+        <p className="handover-note">
+          The AI is playing your side ({playerName(humanColor)}). Watch and learn.
+        </p>
+      )}
 
       <Board
         board={state.board}
@@ -341,6 +368,15 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
           <button type="button" className="btn btn-primary" onClick={newGame}>
             New Game
           </button>
+          {mode === 'ai' && isAdmin && state.winner === null && (
+            <button
+              type="button"
+              className="btn"
+              onClick={handedOver ? takeControlBack : handToAI}
+            >
+              {handedOver ? 'Take control back' : 'Hand to AI'}
+            </button>
+          )}
           {mode === 'pvp' && (
             <button
               type="button"

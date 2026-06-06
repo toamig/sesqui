@@ -37,6 +37,8 @@ export interface AuthState {
   providers: string[]
   /** Server-computed rating summary, or null if unrated / not loaded. */
   rating: RatingSummary | null
+  /** True when this account has the server-side admin flag. */
+  isAdmin: boolean
   /** Re-pull profile + rating (after a change). */
   refreshProfile: () => void
 }
@@ -46,9 +48,13 @@ export function useAuth(active: boolean): AuthState {
   const [user, setUser] = useState<User | null>(null)
   const [profileName, setProfileName] = useState<string | null>(null)
   const [rating, setRating] = useState<RatingSummary | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const refreshProfile = useCallback(() => {
-    loadMyProfile().then((p) => setProfileName(p?.display_name ?? null))
+    loadMyProfile().then((p) => {
+      setProfileName(p?.display_name ?? null)
+      setIsAdmin(p?.is_admin === true)
+    })
     myRating().then(setRating)
   }, [])
 
@@ -87,6 +93,7 @@ export function useAuth(active: boolean): AuthState {
     hasPassword: hasPassword(user),
     providers: linkedProviders(user),
     rating,
+    isAdmin,
     refreshProfile,
   }
 }
