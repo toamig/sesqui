@@ -133,18 +133,19 @@ export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreen
             </div>
           </header>
 
-          {auth.anonymous && (
+          {auth.anonymous ? (
             <div className="profile-guest" role="note">
               <p className="profile-guest-text">
-                You're playing as a guest. Sign in to keep your stats and history across devices.
+                You're playing as a guest. Sign in to track your stats, match history, and replays.
+                Guest games aren't saved.
               </p>
               <button type="button" className="btn btn-primary" onClick={onAccount}>
                 Sign in
               </button>
             </div>
-          )}
-
-          <section className="profile-stats" aria-label="Record">
+          ) : (
+            <>
+              <section className="profile-stats" aria-label="Record">
             {tiles.map((t) => (
               <div key={t.label} className="profile-tile">
                 <span className="profile-tile-value">{t.value}</span>
@@ -204,6 +205,8 @@ export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreen
               </ul>
             )}
           </section>
+            </>
+          )}
         </>
       )}
     </main>

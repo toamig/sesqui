@@ -144,10 +144,14 @@ export function GameScreen({
   // forget (no-op if the backend/identity is unavailable); not a setState.
   useEffect(() => {
     const winner = state.winner
+    // Replays are saved only for logged-in (non-anonymous) players; guest games
+    // are not tracked.
     if (
       winner === null ||
       mode !== 'ai' ||
       difficulty !== Difficulty.Neural ||
+      !auth.ready ||
+      auth.anonymous ||
       replaySavedRef.current
     ) {
       return
@@ -160,7 +164,7 @@ export function GameScreen({
       winner,
       actions: actionsRef.current.slice(),
     })
-  }, [state.winner, mode, difficulty, humanColor])
+  }, [state.winner, mode, difficulty, humanColor, auth.ready, auth.anonymous])
 
   const allPlaceTargets = useMemo(
     () => (canPlace ? legalPlacementTargets(state) : []),
