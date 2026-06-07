@@ -1,0 +1,221 @@
+/* Pre-game opponent picker. Refined dark/gold, themed via tokens, fixed-layout
+ * (no reshuffle on hover), with a one-time staggered card reveal on load. */
+
+.engine-select {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.engine-select > *:not(.screen-topbar) {
+  width: 100%;
+  max-width: 30rem;
+}
+
+/* ---- Engine cards ---- */
+.engine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.engine-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: var(--surface-radius);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  animation: engine-rise 0.4s ease backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.engine-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface-border));
+}
+
+.engine-card:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--select-glow);
+}
+
+.engine-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px var(--select-glow);
+}
+
+/* Signal-bar strength meter */
+.engine-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1.7rem;
+  flex: 0 0 auto;
+}
+
+.meter-bar {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--surface-border);
+  transition: background 0.16s ease;
+}
+
+.meter-bar:nth-child(1) { height: 28%; }
+.meter-bar:nth-child(2) { height: 46%; }
+.meter-bar:nth-child(3) { height: 64%; }
+.meter-bar:nth-child(4) { height: 82%; }
+.meter-bar:nth-child(5) { height: 100%; }
+
+.meter-bar.is-on {
+  background: var(--accent);
+}
+
+.engine-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.engine-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+
+.engine-blurb {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+/* Recording badge */
+.engine-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 0.12rem 0.4rem 0.12rem 0.34rem;
+  border-radius: 100px;
+  color: #fff;
+  background: #d8453a;
+}
+
+.engine-rec::before {
+  content: '';
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.engine-radio {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  border: 2px solid var(--surface-border);
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.engine-card.is-selected .engine-radio {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 42%, transparent 48%);
+}
+
+/* ---- Side toggle ---- */
+.engine-side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.engine-side-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.side-toggle {
+  display: inline-flex;
+  background: var(--surface);
+  border: var(--control-border-width) solid var(--surface-border);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.side-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.side-opt.is-on {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.side-sub {
+  font-size: 0.74rem;
+  opacity: 0.8;
+}
+
+/* ---- Recorded legend ---- */
+.engine-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  opacity: 0.75;
+  transition: opacity 0.16s ease;
+}
+
+.engine-legend.is-active {
+  opacity: 1;
+  color: var(--text);
+}
+
+.engine-start {
+  width: 100%;
+}
+
+@keyframes engine-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engine-card {
+    animation: none;
+  }
+}

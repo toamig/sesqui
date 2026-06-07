@@ -127,6 +127,49 @@
   color: var(--accent);
 }
 
+/* vs-Computer setup summary (engine + side chosen on the pre-game screen). */
+.ai-setup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ai-setup-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.ai-setup-vs {
+  font-family: var(--font-display);
+  color: var(--text);
+}
+
+.ai-rec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 0.1rem 0.36rem 0.1rem 0.3rem;
+  border-radius: 100px;
+  color: #fff;
+  background: #d8453a;
+}
+
+.ai-rec-chip::before {
+  content: '';
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: #fff;
+}
+
 @keyframes status-pop {
   0% {
     transform: scale(0.9);

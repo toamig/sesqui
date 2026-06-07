@@ -9,6 +9,9 @@ import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
 import { ReplayScreen } from './screens/ReplayScreen'
+import { EngineSelect } from './screens/EngineSelect'
+import { Difficulty } from './game/ai/ai'
+import type { Player } from './game/types'
 import { AccountButton } from './components/AccountButton'
 import { AccountDrawer } from './components/AccountDrawer'
 import { handleOAuthRedirect } from './online/auth'
@@ -28,6 +31,7 @@ type View =
   | 'online'
   | 'profile'
   | 'replay'
+  | 'ai-setup'
 
 interface RoomSession {
   room: string
@@ -47,7 +51,7 @@ function readInviteRoom(): RoomSession | null {
 function readDevScreen(): View | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null
   const s = new URLSearchParams(window.location.search).get('screen')
-  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match', 'profile']
+  const allowed: View[] = ['menu', 'game', 'rules', 'online-hub', 'lobby', 'match', 'profile', 'ai-setup']
   return (allowed as string[]).includes(s ?? '') ? (s as View) : null
 }
 
@@ -64,6 +68,11 @@ export default function App() {
   const [profileReturn, setProfileReturn] = useState<View>('menu')
   // The replay currently open in the step-through viewer.
   const [replayId, setReplayId] = useState<number | null>(null)
+  // vs-Computer pre-game choices (engine + side); the nonce forces a fresh game
+  // each time "Start" is pressed, even with unchanged settings.
+  const [aiEngine, setAiEngine] = useState<Difficulty>(Difficulty.Neural)
+  const [aiSide, setAiSide] = useState<Player>('V')
+  const [aiStart, setAiStart] = useState(0)
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -101,7 +110,10 @@ export default function App() {
   const handleMenuSelect = (target: 'online' | 'pvp' | 'ai' | 'watch' | 'rules') => {
     if (target === 'online') setView('online-hub')
     else if (target === 'rules') setView('rules')
-    else {
+    else if (target === 'ai') {
+      setLocalMode('ai')
+      setView('ai-setup')
+    } else {
       setLocalMode(target)
       setView('game')
     }
@@ -167,10 +179,28 @@ export default function App() {
     )
   } else if (view === 'replay' && replayId !== null) {
     screen = <ReplayScreen key={replayId} replayId={replayId} onBack={() => setView('profile')} />
+  } else if (view === 'ai-setup') {
+    screen = (
+      <EngineSelect
+        initialEngine={aiEngine}
+        initialSide={aiSide}
+        onStart={(engine, side) => {
+          setAiEngine(engine)
+          setAiSide(side)
+          setAiStart((n) => n + 1)
+          setView('game')
+        }}
+        onBack={() => setView('menu')}
+      />
+    )
   } else if (view === 'game') {
     screen = (
       <GameScreen
+        key={localMode === 'ai' ? `ai-${aiStart}` : localMode}
         mode={localMode}
+        initialDifficulty={localMode === 'ai' ? aiEngine : undefined}
+        initialHumanColor={localMode === 'ai' ? aiSide : undefined}
+        onChangeOpponent={localMode === 'ai' ? () => setView('ai-setup') : undefined}
         onBack={() => setView('menu')}
         onShowRules={() => setView('rules')}
       />

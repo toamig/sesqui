@@ -23,6 +23,12 @@ interface GameScreenProps {
   /** Which local mode this screen runs: chosen on the main menu, fixed here so
    *  the controls never reshuffle. ('pvp' | 'ai' | 'watch') */
   mode: Mode
+  /** vs-Computer engine, chosen on the pre-game opponent screen. */
+  initialDifficulty?: Difficulty
+  /** vs-Computer side the human plays, chosen pre-game. */
+  initialHumanColor?: Player
+  /** Return to the opponent picker to change engine/side (vs-Computer only). */
+  onChangeOpponent?: () => void
   /** Return to the main menu. */
   onBack: () => void
   /** Open the standalone rules / how-to-play page. */
@@ -52,14 +58,21 @@ const countPieces = (board: BoardModel, player: Player): number => {
   return n
 }
 
-export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
+export function GameScreen({
+  mode,
+  initialDifficulty,
+  initialHumanColor,
+  onChangeOpponent,
+  onBack,
+  onShowRules,
+}: GameScreenProps) {
   const [state, setState] = useState<GameState>(createInitialState)
-  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.Medium)
+  const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty ?? Difficulty.Medium)
   // Watch mode (AI vs AI): the engine driving each side. Defaults pit the two
   // strong engines against each other so the matchup is visible immediately.
   const [vEngine, setVEngine] = useState<Difficulty>(Difficulty.Hard)
   const [hEngine, setHEngine] = useState<Difficulty>(Difficulty.Expert)
-  const [humanColor, setHumanColor] = useState<Player>('V')
+  const [humanColor, setHumanColor] = useState<Player>(initialHumanColor ?? 'V')
   const [selected, setSelected] = useState<number | null>(null)
   const [history, setHistory] = useState<GameState[]>([])
   // The last atomic action drives the arrival animation for the piece it placed
@@ -332,33 +345,27 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
 
       <div className="controls">
         {mode === 'ai' && (
-          <>
-            <div className="control-group">
-              <label htmlFor="algorithm">Algorithm</label>
-              <select
-                id="algorithm"
-                value={difficulty}
-                onChange={(e) => resetWith({ difficulty: e.target.value as Difficulty })}
-              >
-                <option value={Difficulty.Easy}>Random</option>
-                <option value={Difficulty.Medium}>Heuristic</option>
-                <option value={Difficulty.Hard}>Alpha-Beta</option>
-                <option value={Difficulty.Expert}>Monte Carlo (MCTS)</option>
-                <option value={Difficulty.Neural}>Neural (AlphaZero)</option>
-              </select>
-            </div>
-            <div className="control-group">
-              <label htmlFor="side">You play</label>
-              <select
-                id="side"
-                value={humanColor}
-                onChange={(e) => resetWith({ humanColor: e.target.value as Player })}
-              >
-                <option value="V">Black (first)</option>
-                <option value="H">White (second)</option>
-              </select>
-            </div>
-          </>
+          <div className="ai-setup-bar">
+            <span className="ai-setup-info">
+              <span className="ai-setup-vs">vs {engineLabel(difficulty)}</span>
+              <span className="ai-setup-sep" aria-hidden>
+                ·
+              </span>
+              <span className="ai-setup-side">
+                You play {humanColor === 'V' ? 'Black' : 'White'}
+              </span>
+              {difficulty === Difficulty.Neural && (
+                <span className="ai-rec-chip" title="This game is saved to your replays">
+                  REC
+                </span>
+              )}
+            </span>
+            {onChangeOpponent && (
+              <button type="button" className="btn btn-small" onClick={onChangeOpponent}>
+                Change
+              </button>
+            )}
+          </div>
         )}
 
         {mode === 'watch' && (
