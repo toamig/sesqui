@@ -1,0 +1,47 @@
+/* Replay viewer. Themed via tokens; reuses the shared .btn styles. */
+
+.replay-screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.replay-hint {
+  margin-top: 2rem;
+  color: var(--text-muted);
+}
+
+.replay-meta {
+  margin: 0;
+  max-width: 92vw;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.replay-status {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.replay-slider {
+  width: min(92vw, 28rem);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.replay-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.replay-controls .btn {
+  min-width: 3rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}

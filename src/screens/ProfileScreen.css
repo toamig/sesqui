@@ -207,6 +207,26 @@
   color: var(--loss);
 }
 
+.mh-result.is-draw {
+  background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+  color: var(--text-muted);
+}
+
+/* A history row that is itself a button (tap to open a replay). */
+.mh-row-button {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mh-row-button:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
 .mh-main {
   flex: 1;
   min-width: 0;

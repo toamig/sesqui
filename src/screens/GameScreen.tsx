@@ -15,6 +15,7 @@ import type { Action, Board as BoardModel, GameState, Player } from '../game/typ
 // implementations (incl. the neural net weights). The worker loads those.
 import { Difficulty } from '../game/ai/ai'
 import { useAuth } from '../online/useAuth'
+import { saveReplay } from '../online/replays'
 
 type Mode = 'pvp' | 'ai' | 'watch'
 
@@ -74,6 +75,10 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
   const workerRef = useRef<Worker | null>(null)
   const reqIdRef = useRef(0)
   const thinkingRef = useRef(false)
+  // Full atomic-action log of the current vs-AI game (human + AI moves), used to
+  // save a study replay when a Neural game finishes. Reset with the game.
+  const actionsRef = useRef<Action[]>([])
+  const replaySavedRef = useRef(false)
 
   // The AI search runs in a Web Worker so a long think (Hard can take ~1.5s)
   // never freezes the board. Replies are matched by id; any reply whose id was
@@ -88,6 +93,7 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
       thinkingRef.current = false
       const { action } = e.data
       if (action) {
+        actionsRef.current.push(action)
         setLastAction(action)
         setState((prev) => applyAction(prev, action))
       }
@@ -121,6 +127,27 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
     worker.postMessage({ id: reqIdRef.current, difficulty: currentEngine, state })
   }, [aiToMove, state, currentEngine])
 
+  // When a game vs the Neural AI finishes, save a study replay once. Fire and
+  // forget (no-op if the backend/identity is unavailable); not a setState.
+  useEffect(() => {
+    const winner = state.winner
+    if (
+      winner === null ||
+      mode !== 'ai' ||
+      difficulty !== Difficulty.Neural ||
+      replaySavedRef.current
+    ) {
+      return
+    }
+    replaySavedRef.current = true
+    void saveReplay({
+      algorithm: difficulty,
+      humanColor,
+      winner,
+      actions: actionsRef.current.slice(),
+    })
+  }, [state.winner, mode, difficulty, humanColor])
+
   const allPlaceTargets = useMemo(
     () => (canPlace ? legalPlacementTargets(state) : []),
     [canPlace, state],
@@ -132,6 +159,7 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
   const placeTargets = selected === null ? allPlaceTargets : []
 
   const commit = (action: Action) => {
+    actionsRef.current.push(action)
     setHistory((h) => [...h, state])
     setState(applyAction(state, action))
     setSelected(null)
@@ -181,6 +209,8 @@ export function GameScreen({ mode, onBack, onShowRules }: GameScreenProps) {
     setSelected(null)
     setLastAction(null)
     setHandedOver(false)
+    actionsRef.current = []
+    replaySavedRef.current = false
     reqIdRef.current += 1 // discard any AI reply still in flight
     thinkingRef.current = false
   }

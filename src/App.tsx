@@ -8,6 +8,7 @@ import { OnlineLobby } from './screens/OnlineLobby'
 import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
+import { ReplayScreen } from './screens/ReplayScreen'
 import { AccountButton } from './components/AccountButton'
 import { AccountDrawer } from './components/AccountDrawer'
 import { handleOAuthRedirect } from './online/auth'
@@ -17,7 +18,16 @@ import type { SkinId } from './theme'
 import './App.css'
 
 type LocalMode = 'pvp' | 'ai' | 'watch'
-type View = 'menu' | 'game' | 'rules' | 'online-hub' | 'lobby' | 'match' | 'online' | 'profile'
+type View =
+  | 'menu'
+  | 'game'
+  | 'rules'
+  | 'online-hub'
+  | 'lobby'
+  | 'match'
+  | 'online'
+  | 'profile'
+  | 'replay'
 
 interface RoomSession {
   room: string
@@ -52,6 +62,8 @@ export default function App() {
   const [accountOpen, setAccountOpen] = useState(false)
   // Where "Back" returns to from the profile page (the screen it was opened from).
   const [profileReturn, setProfileReturn] = useState<View>('menu')
+  // The replay currently open in the step-through viewer.
+  const [replayId, setReplayId] = useState<number | null>(null)
 
   const changeSkin = (next: SkinId) => {
     setSkin(next)
@@ -112,6 +124,12 @@ export default function App() {
     setView('profile')
   }
 
+  /** Open a saved replay in the step-through viewer (from the profile list). */
+  const openReplay = (id: number) => {
+    setReplayId(id)
+    setView('replay')
+  }
+
   // The active screen. The account button + drawer render globally on top of
   // whichever screen this is, so the account is reachable from anywhere without
   // navigating away (you keep your place, even mid-game).
@@ -144,8 +162,11 @@ export default function App() {
       <ProfileScreen
         onBack={() => setView(profileReturn)}
         onAccount={() => setAccountOpen(true)}
+        onOpenReplay={openReplay}
       />
     )
+  } else if (view === 'replay' && replayId !== null) {
+    screen = <ReplayScreen key={replayId} replayId={replayId} onBack={() => setView('profile')} />
   } else if (view === 'game') {
     screen = (
       <GameScreen

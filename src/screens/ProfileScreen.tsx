@@ -12,12 +12,16 @@ import { isSupabaseConfigured } from '../online/auth'
 import { useAuth } from '../online/useAuth'
 import { myMatches, myMatchStats } from '../online/matches'
 import type { MatchRow, MatchStats } from '../online/matches'
+import { myReplays } from '../online/replays'
+import type { ReplayMeta } from '../online/replays'
 import './ProfileScreen.css'
 
 interface ProfileScreenProps {
   onBack: () => void
   /** Open the account drawer (sign in / manage account). */
   onAccount: () => void
+  /** Open a saved replay in the step-through viewer. */
+  onOpenReplay: (id: number) => void
 }
 
 /** "March 2026" from an ISO date, or null if absent/unparseable. */
@@ -47,10 +51,11 @@ function relativeTime(iso: string): string {
   return `${Math.floor(d / 365)}y ago`
 }
 
-export function ProfileScreen({ onBack, onAccount }: ProfileScreenProps) {
+export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreenProps) {
   const auth = useAuth(true)
   const [stats, setStats] = useState<MatchStats | null>(null)
   const [matches, setMatches] = useState<MatchRow[] | null>(null)
+  const [replays, setReplays] = useState<ReplayMeta[] | null>(null)
 
   const uid = auth.user?.id ?? null
 
@@ -59,10 +64,11 @@ export function ProfileScreen({ onBack, onAccount }: ProfileScreenProps) {
   useEffect(() => {
     if (!isSupabaseConfigured || !auth.ready || !uid) return
     let cancelled = false
-    void Promise.all([myMatchStats(), myMatches(20)]).then(([s, m]) => {
+    void Promise.all([myMatchStats(), myMatches(20), myReplays(50)]).then(([s, m, r]) => {
       if (cancelled) return
       setStats(s)
       setMatches(m)
+      setReplays(r)
     })
     return () => {
       cancelled = true
@@ -171,6 +177,52 @@ export function ProfileScreen({ onBack, onAccount }: ProfileScreenProps) {
                     <span className="mh-time">{relativeTime(m.playedAt)}</span>
                   </li>
                 ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="profile-history">
+            <h2 className="profile-section-title">Practice replays</h2>
+
+            {replays === null ? (
+              <p className="profile-hint">Loading your replays…</p>
+            ) : replays.length === 0 ? (
+              <div className="profile-empty">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M10 9l5 3-5 3z" />
+                </svg>
+                <p className="profile-empty-title">No replays yet</p>
+                <p className="profile-hint">Finish a game vs the Neural AI to save a replay you can study.</p>
+              </div>
+            ) : (
+              <ul className="mh-list">
+                {replays.map((r) => {
+                  const outcome =
+                    r.winner === 'draw' ? 'draw' : r.winner === r.human_color ? 'win' : 'loss'
+                  return (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        className="mh-row mh-row-button"
+                        onClick={() => onOpenReplay(r.id)}
+                      >
+                        <span className={`mh-result is-${outcome}`} aria-hidden>
+                          {outcome === 'draw' ? 'D' : outcome === 'win' ? 'W' : 'L'}
+                        </span>
+                        <span className="mh-main">
+                          <span className="mh-opp">
+                            <span className="mh-vs">vs</span> Neural
+                          </span>
+                          <span className="mh-sub">
+                            Played {r.human_color === 'V' ? 'Vertical' : 'Horizontal'} · {r.moves} moves
+                          </span>
+                        </span>
+                        <span className="mh-time">{relativeTime(r.played_at)} ›</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </section>
