@@ -73,30 +73,44 @@ export async function createGame(row: {
 }
 
 /** Reset an existing row to a fresh game (rematch): bump game_id, reset state +
- *  seq, keep seat assignments. Best-effort.
+ *  seq. By default seats are kept; with `swapColors` the two players trade sides.
+ *  Best-effort.
  *
  *  Also clears the settlement marker (settled_at / winner_color) so the NEW game
  *  settles and records its own match-history row when it ends. Safe: the board
  *  is reset to empty here too, so a re-settle of the old generation can't double
- *  count (finish_game finds no connection on an empty board). */
+ *  count (finish_game finds no connection on an empty board).
+ *
+ *  `swapColors` exchanges v_token <-> h_token and flips host_color, so a friend
+ *  rematch rotates colours durably. This MUST move the seat tokens, not just the
+ *  clients' local colours: finish_game maps each seat token to a colour, so a
+ *  client-only swap would settle the new game (winner, Elo, replays) under the
+ *  old colours. */
 export async function resetGame(args: {
   code: string
   gameId: number
   state: GameState
+  swapColors?: boolean
 }): Promise<void> {
   const client = await getClient()
   if (!client) return
-  await client
-    .from(TABLE)
-    .update({
-      game_id: args.gameId,
-      state: args.state,
-      seq: 0,
-      settled_at: null,
-      winner_color: null,
-      actions: [],
-    })
-    .eq('code', args.code)
+  const patch: Record<string, unknown> = {
+    game_id: args.gameId,
+    state: args.state,
+    seq: 0,
+    settled_at: null,
+    winner_color: null,
+    actions: [],
+  }
+  if (args.swapColors) {
+    const row = await loadGame(args.code)
+    if (row) {
+      patch.v_token = row.h_token
+      patch.h_token = row.v_token
+      patch.host_color = row.host_color === 'V' ? 'H' : 'V'
+    }
+  }
+  await client.from(TABLE).update(patch).eq('code', args.code)
 }
 
 /** Persist the latest state + seq after an action. Best-effort: a failed write

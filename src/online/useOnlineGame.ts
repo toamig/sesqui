@@ -125,7 +125,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
    *  (rematch). Guests never write here; they hydrate/seat via the store on
    *  connect instead. */
   const beginGame = useCallback(
-    (gameId: number, hostColor: Player, myRole: Role, persistAs?: 'create' | 'reset') => {
+    (gameId: number, hostColor: Player, myRole: Role, persistAs?: 'create' | 'reset', swap = false) => {
       gameIdRef.current = gameId
       seqRef.current = 0
       logRef.current = []
@@ -148,7 +148,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             hostToken: seatTokenRef.current,
           })
         } else {
-          void resetGame({ code: roomRef.current, gameId, state: fresh })
+          void resetGame({ code: roomRef.current, gameId, state: fresh, swapColors: swap })
         }
       }
     },
@@ -488,19 +488,25 @@ export function useOnlineGame(options: Options | null): OnlineGame {
     // Rematch is DB-authoritative so it works even if the opponent's live
     // connection has dropped (mobile tabs suspend aggressively): whoever clicks
     // resets the durable game row and broadcasts the new game. The other side
-    // applies it live if present, or hydrates it on reconnect. The host's colour
-    // is preserved across rematches; the new game id orders generations so a
-    // stale board can't win a race.
-    const hostColor =
+    // applies it live if present, or hydrates it on reconnect. The new game id
+    // orders generations so a stale board can't win a race.
+    //
+    // Colours ROTATE each rematch: the two players trade sides so White's
+    // material edge (see the colour-balance analysis) doesn't always fall to the
+    // same person. We compute the host's CURRENT colour, then flip it; resetGame
+    // swaps the durable seat tokens to match, so reconnection and settlement use
+    // the new colours.
+    const currentHostColor: Player =
       role === 'host'
         ? myColorRef.current ?? options?.hostColor ?? 'V'
         : myColorRef.current
           ? otherPlayer(myColorRef.current)
           : options?.hostColor ?? 'V'
+    const hostColor = otherPlayer(currentHostColor)
     const gameId = Date.now()
     const myRole: Role = role ?? 'guest'
-    // beginGame('reset') updates our local game AND writes the reset to the DB.
-    beginGame(gameId, hostColor, myRole, 'reset')
+    // beginGame('reset', swap=true) resets our local game AND durably swaps seats.
+    beginGame(gameId, hostColor, myRole, 'reset', true)
     transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
   }, [beginGame, options?.hostColor, role])
 
