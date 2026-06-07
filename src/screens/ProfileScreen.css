@@ -236,16 +236,57 @@
 }
 
 .mh-opp {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
   font-size: 0.95rem;
   color: var(--text);
+}
+
+.mh-opp-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .mh-vs {
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+/* Small mode chip (Practice / Friend / Ranked) at the start of a history row. */
+.mh-mode-badge {
+  flex: 0 0 auto;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+/* "Review" affordance on the right of each (clickable) history row. */
+.mh-review {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.25rem 0.55rem;
+  border-radius: 100px;
+  border: var(--control-border-width, 1px) solid var(--surface-border);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.mh-row-button:hover .mh-review {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .mh-sub {

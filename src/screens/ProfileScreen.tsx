@@ -10,8 +10,8 @@
 import { useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../online/auth'
 import { useAuth } from '../online/useAuth'
-import { myMatches, myMatchStats } from '../online/matches'
-import type { MatchRow, MatchStats } from '../online/matches'
+import { myMatchStats } from '../online/matches'
+import type { MatchStats } from '../online/matches'
 import { myReplays } from '../online/replays'
 import type { ReplayMeta } from '../online/replays'
 import './ProfileScreen.css'
@@ -51,10 +51,20 @@ function relativeTime(iso: string): string {
   return `${Math.floor(d / 365)}y ago`
 }
 
+const modeLabel = (m: string): string =>
+  m === 'ai'
+    ? 'Practice'
+    : m === 'friend'
+      ? 'Friend'
+      : m === 'casual'
+        ? 'Casual'
+        : m === 'ranked'
+          ? 'Ranked'
+          : 'Online'
+
 export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreenProps) {
   const auth = useAuth(true)
   const [stats, setStats] = useState<MatchStats | null>(null)
-  const [matches, setMatches] = useState<MatchRow[] | null>(null)
   const [replays, setReplays] = useState<ReplayMeta[] | null>(null)
 
   const uid = auth.user?.id ?? null
@@ -64,10 +74,9 @@ export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreen
   useEffect(() => {
     if (!isSupabaseConfigured || !auth.ready || !uid) return
     let cancelled = false
-    void Promise.all([myMatchStats(), myMatches(20), myReplays(50)]).then(([s, m, r]) => {
+    void Promise.all([myMatchStats(), myReplays(50)]).then(([s, r]) => {
       if (cancelled) return
       setStats(s)
-      setMatches(m)
       setReplays(r)
     })
     return () => {
@@ -145,55 +154,18 @@ export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreen
           </section>
 
           <section className="profile-history">
-            <h2 className="profile-section-title">Recent games</h2>
-
-            {matches === null ? (
-              <p className="profile-hint">Loading your games…</p>
-            ) : matches.length === 0 ? (
-              <div className="profile-empty">
-                <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M3 9h18M8 4v16" />
-                </svg>
-                <p className="profile-empty-title">No games yet</p>
-                <p className="profile-hint">Play a friend online to start your history.</p>
-              </div>
-            ) : (
-              <ul className="mh-list">
-                {matches.map((m) => (
-                  <li key={m.id} className="mh-row">
-                    <span className={`mh-result is-${m.result}`} aria-hidden>
-                      {m.result === 'win' ? 'W' : 'L'}
-                    </span>
-                    <span className="mh-main">
-                      <span className="mh-opp">
-                        <span className="mh-vs">vs</span> {m.opponent}
-                      </span>
-                      <span className="mh-sub">
-                        Played {m.color === 'V' ? 'Vertical' : 'Horizontal'} ·{' '}
-                        {m.result === 'win' ? 'Won' : 'Lost'}
-                      </span>
-                    </span>
-                    <span className="mh-time">{relativeTime(m.playedAt)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="profile-history">
-            <h2 className="profile-section-title">Practice replays</h2>
+            <h2 className="profile-section-title">Match history</h2>
 
             {replays === null ? (
-              <p className="profile-hint">Loading your replays…</p>
+              <p className="profile-hint">Loading your games…</p>
             ) : replays.length === 0 ? (
               <div className="profile-empty">
                 <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <circle cx="12" cy="12" r="9" />
                   <path d="M10 9l5 3-5 3z" />
                 </svg>
-                <p className="profile-empty-title">No replays yet</p>
-                <p className="profile-hint">Finish a game vs the Neural AI to save a replay you can study.</p>
+                <p className="profile-empty-title">No games yet</p>
+                <p className="profile-hint">Play online or vs the Neural AI, then review your games here.</p>
               </div>
             ) : (
               <ul className="mh-list">
@@ -212,13 +184,19 @@ export function ProfileScreen({ onBack, onAccount, onOpenReplay }: ProfileScreen
                         </span>
                         <span className="mh-main">
                           <span className="mh-opp">
-                            <span className="mh-vs">vs</span> Neural
+                            <span className="mh-mode-badge">{modeLabel(r.mode)}</span>
+                            <span className="mh-opp-name">
+                              <span className="mh-vs">vs</span> {r.opponent}
+                            </span>
                           </span>
                           <span className="mh-sub">
-                            Played {r.human_color === 'V' ? 'Vertical' : 'Horizontal'} · {r.moves} moves
+                            Played {r.human_color === 'V' ? 'Vertical' : 'Horizontal'} · {r.moves} moves ·{' '}
+                            {relativeTime(r.played_at)}
                           </span>
                         </span>
-                        <span className="mh-time">{relativeTime(r.played_at)} ›</span>
+                        <span className="mh-review" aria-hidden>
+                          ▶ Review
+                        </span>
                       </button>
                     </li>
                   )

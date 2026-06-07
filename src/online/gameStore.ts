@@ -10,7 +10,7 @@
 // a no-op returning null/false, so the online flow gracefully degrades to
 // in-memory Layer 1 behaviour.
 
-import type { GameState, Player } from '../game/types'
+import type { Action, GameState, Player } from '../game/types'
 import { getSupabase, isSupabaseConfigured } from './supabaseClient'
 
 /** One persisted game row, mirroring the public.games table. */
@@ -22,6 +22,10 @@ export interface GameRow {
   host_color: Player
   v_token: string | null
   h_token: string | null
+  /** Durable atomic-action log, for building replays. */
+  actions?: Action[]
+  /** Online mode label ('friend' | 'casual' | 'ranked'). */
+  mode?: string
 }
 
 /** Seat a token can hold when it (re)joins a room. */
@@ -90,6 +94,7 @@ export async function resetGame(args: {
       seq: 0,
       settled_at: null,
       winner_color: null,
+      actions: [],
     })
     .eq('code', args.code)
 }
@@ -100,6 +105,20 @@ export async function saveState(code: string, state: GameState, seq: number): Pr
   const client = await getClient()
   if (!client) return
   await client.from(TABLE).update({ state, seq }).eq('code', code)
+}
+
+/** Persist the latest state + seq AND append this action to the durable move log
+ *  (server-side append via RPC), so finish_game can build a replay from the full
+ *  sequence regardless of refreshes. Best-effort, like saveState. */
+export async function recordMove(
+  code: string,
+  action: Action,
+  state: GameState,
+  seq: number,
+): Promise<void> {
+  const client = await getClient()
+  if (!client) return
+  await client.rpc('record_move', { p_code: code, p_action: action, p_state: state, p_seq: seq })
 }
 
 /** Claim an open seat for a token. Returns the seat the caller holds:

@@ -16,6 +16,17 @@ interface ReplayScreenProps {
 
 const colorName = (p: Player): string => (p === 'V' ? 'Black' : 'White')
 
+const modeLabel = (m: string): string =>
+  m === 'ai'
+    ? 'Practice'
+    : m === 'friend'
+      ? 'Friend'
+      : m === 'casual'
+        ? 'Casual'
+        : m === 'ranked'
+          ? 'Ranked'
+          : 'Online'
+
 function formatDate(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
@@ -82,8 +93,9 @@ export function ReplayScreen({ replayId, onBack }: ReplayScreenProps) {
       ) : (
         <>
           <p className="replay-meta">
-            vs Neural · You played {colorName(replay.human_color)} · {resultText()} · {replay.moves}{' '}
-            moves · {formatDate(replay.played_at)}
+            {modeLabel(replay.mode)} · vs {replay.opponent} · You played{' '}
+            {colorName(replay.human_color)} · {resultText()} · {replay.moves} moves ·{' '}
+            {formatDate(replay.played_at)}
           </p>
 
           <Board

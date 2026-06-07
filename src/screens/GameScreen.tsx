@@ -154,7 +154,8 @@ export function GameScreen({
     }
     replaySavedRef.current = true
     void saveReplay({
-      algorithm: difficulty,
+      mode: 'ai',
+      opponent: 'Neural',
       humanColor,
       winner,
       actions: actionsRef.current.slice(),

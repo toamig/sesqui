@@ -12,7 +12,10 @@ export type ReplayWinner = Player | 'draw'
 export interface ReplayMeta {
   id: number
   played_at: string
-  algorithm: string
+  /** 'ai' | 'friend' | 'casual' | 'ranked'. */
+  mode: string
+  /** Opponent display name ('Neural' for AI games). */
+  opponent: string
   human_color: Player
   winner: ReplayWinner
   moves: number
@@ -25,7 +28,8 @@ export interface Replay extends ReplayMeta {
 
 /** Persist a finished game. Returns true on success. */
 export async function saveReplay(r: {
-  algorithm: string
+  mode: string
+  opponent: string
   humanColor: Player
   winner: ReplayWinner
   actions: Action[]
@@ -37,7 +41,8 @@ export async function saveReplay(r: {
   if (!uid) return false
   const { error } = await supabase.from('replays').insert({
     user_id: uid,
-    algorithm: r.algorithm,
+    mode: r.mode,
+    opponent: r.opponent,
     human_color: r.humanColor,
     winner: r.winner,
     moves: r.actions.length,
@@ -55,7 +60,7 @@ export async function myReplays(limit = 50): Promise<ReplayMeta[]> {
   if (!uid) return []
   const { data, error } = await supabase
     .from('replays')
-    .select('id, played_at, algorithm, human_color, winner, moves')
+    .select('id, played_at, mode, opponent, human_color, winner, moves')
     .eq('user_id', uid)
     .order('played_at', { ascending: false })
     .limit(limit)

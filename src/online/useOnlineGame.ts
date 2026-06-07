@@ -21,9 +21,9 @@ import {
   createGame,
   isStoreConfigured,
   loadGame,
+  recordMove,
   releaseSeat,
   resetGame,
-  saveState,
 } from './gameStore'
 import { getSeatToken, resolveSeatToken } from './seat'
 import { settleGame, type RatingDelta } from './ratings'
@@ -174,7 +174,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
         // client calling too is harmless.
         const room = roomRef.current
         const settledRef = settleDoneRef
-        void saveState(room, next, seqRef.current).then(() => {
+        void recordMove(room, action, next, seqRef.current).then(() => {
           if (next.winner !== null && next.winner !== 'draw' && !settledRef.current) {
             settledRef.current = true
             void settleGame(room).then((delta) => {
