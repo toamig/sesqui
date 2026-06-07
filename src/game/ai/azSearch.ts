@@ -156,6 +156,28 @@ function simulate(root: AZNode, evaluate: Evaluator): void {
   }
 }
 
+/** Pick a child in proportion to visit_count^(1/temperature). Higher temperature
+ *  flattens toward uniform; as temperature -> 0 it approaches argmax. */
+function sampleByVisits(children: Child[], temperature: number): Child {
+  let total = 0
+  const weights = children.map((c) => {
+    const w = c.n > 0 ? Math.pow(c.n, 1 / temperature) : 0
+    total += w
+    return w
+  })
+  if (total <= 0) {
+    let best = children[0]
+    for (const c of children) if (c.n > best.n) best = c
+    return best
+  }
+  let r = Math.random() * total
+  for (let i = 0; i < children.length; i++) {
+    r -= weights[i]
+    if (r <= 0) return children[i]
+  }
+  return children[children.length - 1]
+}
+
 export interface AZOptions {
   timeMs?: number
   difficulty?: Difficulty
@@ -163,6 +185,11 @@ export interface AZOptions {
   rootNoise?: boolean
   noiseEps?: number
   noiseAlpha?: number
+  /** Early-game move-sampling temperature (0 = always play the top move). With a
+   *  positive value, the first `tempTurns` turns sample among moves by visit
+   *  count, so openings and early lines vary instead of being identical. */
+  temperature?: number
+  tempTurns?: number
   /** Override the network weights (defaults to the bundled net). Used by tools to
    *  pit two model versions against each other. */
   evaluate?: Evaluator
@@ -175,6 +202,8 @@ export class AZSearchAI implements AIPlayer {
   private readonly rootNoise: boolean
   private readonly noiseEps: number
   private readonly noiseAlpha: number
+  private readonly temperature: number
+  private readonly tempTurns: number
   private readonly evaluate: Evaluator
 
   constructor(opts: AZOptions = {}) {
@@ -183,6 +212,8 @@ export class AZSearchAI implements AIPlayer {
     this.rootNoise = opts.rootNoise ?? false
     this.noiseEps = opts.noiseEps ?? 0.25
     this.noiseAlpha = opts.noiseAlpha ?? 0.3
+    this.temperature = opts.temperature ?? 0
+    this.tempTurns = opts.tempTurns ?? 0
     this.evaluate = opts.evaluate ?? azEvaluate
   }
 
@@ -221,6 +252,11 @@ export class AZSearchAI implements AIPlayer {
 
     const root = this.run(state)
     const children = root.children as Child[]
+    // Early-game temperature: sample among moves by visit count so openings and
+    // early lines vary. Later turns play the most-visited (strongest) move.
+    if (this.temperature > 0 && state.turn <= this.tempTurns) {
+      return sampleByVisits(children, this.temperature).action
+    }
     let best = children[0]
     for (const c of children) if (c.n > best.n) best = c
     return best.action
@@ -237,5 +273,6 @@ export class AZSearchAI implements AIPlayer {
 }
 
 export function createAZAI(timeMs = 1200): AIPlayer {
-  return new AZSearchAI({ timeMs })
+  // Vary the opening / early game so matches aren't identical; still argmax later.
+  return new AZSearchAI({ timeMs, temperature: 1, tempTurns: 6 })
 }

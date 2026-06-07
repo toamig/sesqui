@@ -27,6 +27,32 @@ interface MctsOptions {
    *  random playout. This turns the search into value-network-guided MCTS
    *  (AlphaZero-style): same tree, but a trained net replaces the rollout. */
   valueFn?: (state: GameState) => number
+  /** Early-game move-sampling temperature (0 = always the most-visited move).
+   *  When positive, the first `tempTurns` turns sample among root moves by visit
+   *  count so games vary instead of repeating the same line. */
+  temperature?: number
+  tempTurns?: number
+}
+
+/** Pick a root child in proportion to visits^(1/temperature) (variety early). */
+function sampleNodeByVisits(nodes: Node[], temperature: number): Node {
+  let total = 0
+  const weights = nodes.map((n) => {
+    const w = n.visits > 0 ? Math.pow(n.visits, 1 / temperature) : 0
+    total += w
+    return w
+  })
+  if (total <= 0) {
+    let best = nodes[0]
+    for (const n of nodes) if (n.visits > best.visits) best = n
+    return best
+  }
+  let r = Math.random() * total
+  for (let i = 0; i < nodes.length; i++) {
+    r -= weights[i]
+    if (r <= 0) return nodes[i]
+  }
+  return nodes[nodes.length - 1]
 }
 
 /** Mover-perspective score of a state: shorter own distance and longer opponent
@@ -112,6 +138,8 @@ export class MctsAI implements AIPlayer {
   private readonly rolloutCap: number
   private readonly maxChildren: number
   private readonly valueFn?: (state: GameState) => number
+  private readonly temperature: number
+  private readonly tempTurns: number
 
   constructor(options: MctsOptions = {}) {
     this.difficulty = options.difficulty ?? Difficulty.Hard
@@ -120,6 +148,8 @@ export class MctsAI implements AIPlayer {
     this.rolloutCap = options.rolloutCap ?? 30
     this.maxChildren = options.maxChildren ?? 12
     this.valueFn = options.valueFn
+    this.temperature = options.temperature ?? 0
+    this.tempTurns = options.tempTurns ?? 0
   }
 
   chooseAction(state: GameState): Action | null {
@@ -145,6 +175,11 @@ export class MctsAI implements AIPlayer {
       this.backup(leaf, vScore)
     }
 
+    // Early-game temperature: sample among root moves by visit count for variety;
+    // later turns take the most-visited (strongest) move.
+    if (root.children.length > 0 && this.temperature > 0 && state.turn <= this.tempTurns) {
+      return sampleNodeByVisits(root.children, this.temperature).action ?? actions[0]
+    }
     // Robust child: most-visited action from the root.
     let best = root.children[0]
     for (const child of root.children) {

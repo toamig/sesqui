@@ -20,6 +20,10 @@ interface AlphaBetaOptions {
   timeMs?: number
   maxBranch?: number
   maxDepth?: number
+  /** Early-game variety: for the first `tempTurns` turns, pick at random among
+   *  the top heuristic moves instead of always the same one. 0 disables it. */
+  temperature?: number
+  tempTurns?: number
 }
 
 const WIN = 1_000_000
@@ -93,6 +97,8 @@ export class AlphaBetaAI implements AIPlayer {
   readonly timeMs: number
   private readonly maxBranch: number
   private readonly maxDepth: number
+  private readonly temperature: number
+  private readonly tempTurns: number
   private deadline = 0
   private nodes = 0
   private readonly tt = new Map<string, TTEntry>()
@@ -104,6 +110,8 @@ export class AlphaBetaAI implements AIPlayer {
     this.timeMs = options.timeMs ?? 1500
     this.maxBranch = options.maxBranch ?? 16
     this.maxDepth = options.maxDepth ?? 32
+    this.temperature = options.temperature ?? 0
+    this.tempTurns = options.tempTurns ?? 0
   }
 
   chooseAction(state: GameState): Action | null {
@@ -115,6 +123,13 @@ export class AlphaBetaAI implements AIPlayer {
     const me = state.current
     for (const a of rootActions) {
       if (applyAction(state, a).winner === me) return a // take an instant win
+    }
+
+    // Early-game variety: among the top heuristically-ranked moves, pick one at
+    // random instead of always the same. Later turns run the full search.
+    if (this.temperature > 0 && state.turn <= this.tempTurns) {
+      const ord = scoredOrder(state, rootActions)
+      return ord[Math.floor(Math.random() * Math.min(4, ord.length))]
     }
 
     this.deadline = now() + this.timeMs
