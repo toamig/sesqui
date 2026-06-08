@@ -159,7 +159,13 @@ export default function App() {
   } else if (view === 'lobby') {
     screen = <OnlineLobby onEnter={enterRoom} onBack={() => setView('online-hub')} />
   } else if (view === 'match') {
-    screen = <MatchSearch ranked={matchRanked} onCancel={() => setView('online-hub')} />
+    screen = (
+      <MatchSearch
+        ranked={matchRanked}
+        onCancel={() => setView('online-hub')}
+        onMatched={enterRoom}
+      />
+    )
   } else if (view === 'online' && session) {
     screen = (
       <OnlineScreen
