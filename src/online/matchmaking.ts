@@ -52,3 +52,32 @@ export async function cancelWait(code: string): Promise<void> {
   if (!client) return
   await client.rpc('cancel_wait', { p_code: code })
 }
+
+/** Live matchmaking activity for the search screen. */
+export interface CasualStats {
+  /** Players currently parked in the casual queue (includes you). */
+  searching: number
+  /** Games currently in progress (any mode), as a liveness signal. */
+  liveGames: number
+}
+
+/** Cheap COUNT(*) snapshots over the (readable) games table. Best-effort: any
+ *  failure returns zeros so the UI just shows a quiet state. */
+export async function casualStats(): Promise<CasualStats> {
+  const client = await getSupabase()
+  if (!client) return { searching: 0, liveGames: 0 }
+  const [s, l] = await Promise.all([
+    client
+      .from('games')
+      .select('*', { count: 'exact', head: true })
+      .eq('mode', 'casual')
+      .not('seeker_token', 'is', null),
+    client
+      .from('games')
+      .select('*', { count: 'exact', head: true })
+      .is('settled_at', null)
+      .not('v_token', 'is', null)
+      .not('h_token', 'is', null),
+  ])
+  return { searching: s.count ?? 0, liveGames: l.count ?? 0 }
+}

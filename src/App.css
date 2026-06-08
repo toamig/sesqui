@@ -1251,6 +1251,42 @@
   margin: 0;
 }
 
+.search-activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.5;
+  flex: none;
+}
+
+.live-dot-on {
+  background: #46d17f;
+  opacity: 1;
+  animation: live-pulse 1.8s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(70, 209, 127, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(70, 209, 127, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(70, 209, 127, 0);
+  }
+}
+
 .search-note {
   font-size: 0.86rem;
   line-height: 1.5;

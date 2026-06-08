@@ -8,7 +8,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createInitialState } from '../game/rules'
-import { findCasualMatch, pollWait, cancelWait } from '../online/matchmaking'
+import { findCasualMatch, pollWait, cancelWait, casualStats } from '../online/matchmaking'
+import type { CasualStats } from '../online/matchmaking'
 
 interface MatchSearchProps {
   ranked: boolean
@@ -21,10 +22,12 @@ interface MatchSearchProps {
 type Phase = 'searching' | 'connecting' | 'error'
 
 const POLL_MS = 2500
+const STATS_MS = 4000
 
 export function MatchSearch({ ranked, onCancel, onMatched }: MatchSearchProps) {
   const [seconds, setSeconds] = useState(0)
   const [phase, setPhase] = useState<Phase>('searching')
+  const [stats, setStats] = useState<CasualStats>({ searching: 0, liveGames: 0 })
   const onMatchedRef = useRef(onMatched)
   const codeRef = useRef<string | null>(null)
   const doneRef = useRef(false)
@@ -40,6 +43,23 @@ export function MatchSearch({ ranked, onCancel, onMatched }: MatchSearchProps) {
     const t = setInterval(() => setSeconds((s) => s + 1), 1000)
     return () => clearInterval(t)
   }, [])
+
+  // Live queue / activity snapshot, refreshed while searching.
+  useEffect(() => {
+    if (ranked) return
+    let active = true
+    const tick = () => {
+      void casualStats().then((s) => {
+        if (active) setStats(s)
+      })
+    }
+    tick()
+    const t = setInterval(tick, STATS_MS)
+    return () => {
+      active = false
+      clearInterval(t)
+    }
+  }, [ranked])
 
   // Matchmaking lifecycle. Runs once; ranked does not matchmake yet.
   useEffect(() => {
@@ -106,6 +126,7 @@ export function MatchSearch({ ranked, onCancel, onMatched }: MatchSearchProps) {
   }
 
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  const busy = stats.searching > 1 || stats.liveGames > 0
 
   return (
     <main className="match-search">
@@ -154,10 +175,19 @@ export function MatchSearch({ ranked, onCancel, onMatched }: MatchSearchProps) {
             <p className="search-meta">
               Casual · <span className="search-timer">{mmss}</span>
             </p>
+            <p className="search-activity">
+              <span className={`live-dot${busy ? ' live-dot-on' : ''}`} aria-hidden />
+              {stats.liveGames > 0
+                ? `${stats.liveGames} ${stats.liveGames === 1 ? 'game' : 'games'} in progress`
+                : 'Quiet right now'}
+              {stats.searching > 1 ? ` · ${stats.searching} in queue` : ''}
+            </p>
             <p className="search-note">
               {phase === 'connecting'
                 ? 'Setting up the board…'
-                : 'We’ll pair you with the next available player. Colours are balanced automatically.'}
+                : busy
+                  ? 'Players are active right now. Hang tight, we’ll pair you with the next one.'
+                  : 'It’s quiet right now. We’ll pair you the moment another player arrives, or try Play a Friend.'}
             </p>
           </>
         )}
