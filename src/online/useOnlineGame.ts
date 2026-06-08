@@ -231,13 +231,16 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           // handshake never fires for casual matches and the two clients stay
           // unreconciled after the first move.
           if (peerHandshakeRef.current) break
-          peerHandshakeRef.current = true
 
           if (gameIdRef.current === 0) {
-            // No durable game id yet. Only Layer 1 (no store) mints one here; with
-            // a store the durable row is the source of truth (hydrate/matchmaking
-            // sets the id), so we never mint a second generation.
+            // No durable game id yet (still hydrating, or the room row does not
+            // exist yet). Only Layer 1 (no store) mints one here. Otherwise do NOT
+            // consume the handshake -- it must still run on a LATER hello once the
+            // game id is set, or the two clients never exchange start/state and
+            // both sit forever in 'waiting'. (Consuming it here prematurely broke
+            // friend and casual alike.)
             if (role === 'host' && !isStoreConfigured) {
+              peerHandshakeRef.current = true
               const hostColor = options?.hostColor ?? 'V'
               const gameId = Date.now()
               beginGame(gameId, hostColor, 'host', 'create')
@@ -245,6 +248,9 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             }
             break
           }
+
+          // Durable game id known: run the handshake exactly once.
+          peerHandshakeRef.current = true
 
           // The host announces colour + game id; then BOTH sides push their
           // current snapshot so the more-advanced one wins, reconciling the two
@@ -426,17 +432,15 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           return
         }
         transportRef.current = transport
+        // Listen before hydrating so we never miss the opponent's hellos. A hello
+        // arriving while gameId is still 0 is handled safely now: the hello path
+        // only mints a game when there is NO durable store, and never consumes the
+        // sync handshake until the game id is known.
+        transport.onMessage(handleMessage)
         setStatus(options.role === 'host' ? 'waiting' : 'connecting')
 
-        // Hydrate from the durable store BEFORE listening for messages, so
-        // gameIdRef is populated first. Otherwise an opponent's hello arriving
-        // mid-hydrate -- the casual case, where the seeker joins an already-
-        // seated room that the other player is already heartbeating into -- gets
-        // handled while gameId is still 0 and would mint a second game
-        // generation, desyncing the two clients.
         await hydrate()
         if (cancelled) return
-        transport.onMessage(handleMessage)
 
         const sayHello = () =>
           transport.send({
