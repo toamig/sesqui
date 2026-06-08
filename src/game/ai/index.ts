@@ -12,10 +12,10 @@ export function createAI(difficulty: Difficulty): AIPlayer {
     case Difficulty.Medium:
       return new HeuristicAI(Difficulty.Medium, 1.0)
     case Difficulty.Hard:
-      // temperature: vary the opening so games aren't identical.
+      // temperature: vary the first two placements so games aren't identical.
       return new AlphaBetaAI({ timeMs: 1500, temperature: 1, tempTurns: 2 })
     case Difficulty.Expert:
-      return new MctsAI({ timeMs: 1500, temperature: 1, tempTurns: 6 })
+      return new MctsAI({ timeMs: 1500, temperature: 1, tempTurns: 2 })
     case Difficulty.Neural:
       return createAZAI(1000)
     case Difficulty.Easy:

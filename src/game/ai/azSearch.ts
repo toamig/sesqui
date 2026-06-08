@@ -156,26 +156,34 @@ function simulate(root: AZNode, evaluate: Evaluator): void {
   }
 }
 
-/** Pick a child in proportion to visit_count^(1/temperature). Higher temperature
- *  flattens toward uniform; as temperature -> 0 it approaches argmax. */
+/** A move must reach this fraction of the most-visited move's visits to be a
+ *  candidate for sampling. This keeps early-game variety to genuinely close
+ *  moves: when one move clearly dominates the search it is played outright, and
+ *  we only randomize when several moves are nearly as strong. */
+const VISIT_CLOSE_FRAC = 0.5
+
+/** Pick a child in proportion to visit_count^(1/temperature), but ONLY among
+ *  moves within VISIT_CLOSE_FRAC of the most-visited move (so a clearly weaker
+ *  move is never chosen). Higher temperature flattens the choice among those
+ *  near-best moves; temperature -> 0 approaches argmax. */
 function sampleByVisits(children: Child[], temperature: number): Child {
+  let maxN = 0
+  for (const c of children) if (c.n > maxN) maxN = c.n
+  if (maxN <= 0) return children[0]
+  const cutoff = maxN * VISIT_CLOSE_FRAC
+  const pool = children.filter((c) => c.n >= cutoff)
   let total = 0
-  const weights = children.map((c) => {
-    const w = c.n > 0 ? Math.pow(c.n, 1 / temperature) : 0
+  const weights = pool.map((c) => {
+    const w = Math.pow(c.n, 1 / temperature)
     total += w
     return w
   })
-  if (total <= 0) {
-    let best = children[0]
-    for (const c of children) if (c.n > best.n) best = c
-    return best
-  }
   let r = Math.random() * total
-  for (let i = 0; i < children.length; i++) {
+  for (let i = 0; i < pool.length; i++) {
     r -= weights[i]
-    if (r <= 0) return children[i]
+    if (r <= 0) return pool[i]
   }
-  return children[children.length - 1]
+  return pool[pool.length - 1]
 }
 
 export interface AZOptions {
@@ -273,6 +281,8 @@ export class AZSearchAI implements AIPlayer {
 }
 
 export function createAZAI(timeMs = 1200): AIPlayer {
-  // Vary the opening / early game so matches aren't identical; still argmax later.
-  return new AZSearchAI({ timeMs, temperature: 1, tempTurns: 6 })
+  // Vary only the first two placements, and only among moves nearly as strong as
+  // the best (see sampleByVisits), so openings differ without sacrificing
+  // strength. Plays the single best move from turn 3 on.
+  return new AZSearchAI({ timeMs, temperature: 1, tempTurns: 2 })
 }

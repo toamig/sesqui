@@ -38,7 +38,7 @@ function shard() {
   let b = 0
   let d = 0
   for (let i = 0; i < games; i++) {
-    const temp = new AZSearchAI({ timeMs: think, temperature: 1, tempTurns: 6 })
+    const temp = new AZSearchAI({ timeMs: think, temperature: 1, tempTurns: 2 })
     const plain = new AZSearchAI({ timeMs: think, temperature: 0, tempTurns: 0 })
     const aIsV = i % 2 === 0
     const winner = aIsV ? playGame(temp, plain) : playGame(plain, temp)

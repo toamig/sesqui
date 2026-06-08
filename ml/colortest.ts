@@ -23,7 +23,7 @@ const NOTEMP = process.argv.includes('--notemp')
 function playSelf(think: number, openRandom: number): Outcome {
   const ai = NOTEMP
     ? new AZSearchAI({ timeMs: think })
-    : new AZSearchAI({ timeMs: think, temperature: 1, tempTurns: 6 })
+    : new AZSearchAI({ timeMs: think, temperature: 1, tempTurns: 2 })
   let s = createInitialState()
   let ply = 0
   while (s.winner === null && ply < 400) {

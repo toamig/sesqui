@@ -26,13 +26,13 @@ const TEMP = !process.argv.includes('--notemp')
 
 function makeEngine(name: string, think: number): AIPlayer {
   if (name === 'neural') {
-    return new AZSearchAI({ timeMs: think, temperature: TEMP ? 1 : 0, tempTurns: TEMP ? 6 : 0 })
+    return new AZSearchAI({ timeMs: think, temperature: TEMP ? 1 : 0, tempTurns: TEMP ? 2 : 0 })
   }
   if (name === 'alphabeta') {
     return new AlphaBetaAI({ timeMs: think, temperature: TEMP ? 1 : 0, tempTurns: TEMP ? 2 : 0 })
   }
   if (name === 'mcts') {
-    return new MctsAI({ timeMs: think, temperature: TEMP ? 1 : 0, tempTurns: TEMP ? 6 : 0 })
+    return new MctsAI({ timeMs: think, temperature: TEMP ? 1 : 0, tempTurns: TEMP ? 2 : 0 })
   }
   return new HeuristicAI(Difficulty.Medium, 1.0)
 }

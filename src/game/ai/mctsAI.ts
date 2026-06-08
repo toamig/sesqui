@@ -34,25 +34,31 @@ interface MctsOptions {
   tempTurns?: number
 }
 
-/** Pick a root child in proportion to visits^(1/temperature) (variety early). */
+/** A move must reach this fraction of the most-visited move's visits to be a
+ *  sampling candidate, so early-game variety stays among genuinely close moves. */
+const VISIT_CLOSE_FRAC = 0.5
+
+/** Pick a root child in proportion to visits^(1/temperature), but ONLY among
+ *  moves within VISIT_CLOSE_FRAC of the most-visited one (a clearly weaker move
+ *  is never chosen). Variety early; temperature -> 0 approaches most-visited. */
 function sampleNodeByVisits(nodes: Node[], temperature: number): Node {
+  let maxVisits = 0
+  for (const n of nodes) if (n.visits > maxVisits) maxVisits = n.visits
+  if (maxVisits <= 0) return nodes[0]
+  const cutoff = maxVisits * VISIT_CLOSE_FRAC
+  const pool = nodes.filter((n) => n.visits >= cutoff)
   let total = 0
-  const weights = nodes.map((n) => {
-    const w = n.visits > 0 ? Math.pow(n.visits, 1 / temperature) : 0
+  const weights = pool.map((n) => {
+    const w = Math.pow(n.visits, 1 / temperature)
     total += w
     return w
   })
-  if (total <= 0) {
-    let best = nodes[0]
-    for (const n of nodes) if (n.visits > best.visits) best = n
-    return best
-  }
   let r = Math.random() * total
-  for (let i = 0; i < nodes.length; i++) {
+  for (let i = 0; i < pool.length; i++) {
     r -= weights[i]
-    if (r <= 0) return nodes[i]
+    if (r <= 0) return pool[i]
   }
-  return nodes[nodes.length - 1]
+  return pool[pool.length - 1]
 }
 
 /** Mover-perspective score of a state: shorter own distance and longer opponent
