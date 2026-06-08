@@ -104,6 +104,11 @@ export function useOnlineGame(options: Options | null): OnlineGame {
   const stateRef = useRef<GameState>(state)
   const myColorRef = useRef<Player | null>(null)
   const opponentSeenRef = useRef<boolean>(false)
+  // Whether we've run the live sync handshake with the peer this connection.
+  // Tracked SEPARATELY from opponentSeen: when we join a room whose seats were
+  // already filled (the casual case), hydrate sets opponentSeen without us ever
+  // exchanging live state, so the handshake must key off this instead.
+  const peerHandshakeRef = useRef<boolean>(false)
   // Layer 2: this browser's stable seat token, and whether we're a read-only
   // spectator (both seats already held by others when we joined).
   const seatTokenRef = useRef<string>(getSeatToken())
@@ -215,48 +220,50 @@ export function useOnlineGame(options: Options | null): OnlineGame {
 
       switch (msg.t) {
         case 'hello': {
-          // First sight of the opponent. Mark presence; if we're the host and
-          // a guest just arrived, (re)announce the game so they can start.
-          const firstContact = !opponentSeenRef.current
+          // Mark presence and (for a real game) advance to 'playing'. Both may
+          // already be true from hydrate when we joined a room whose seats were
+          // filled before we connected (the casual case).
           opponentSeenRef.current = true
-          if (role === 'host') {
-            // Host is authoritative for colour + game id.
-            if (gameIdRef.current !== 0) {
-              // We already have a durable game (hydrate, or matchmaking, set the
-              // id). On first sight of the opponent, advance to 'playing' and
-              // (re)announce start + full state so they sync.
-              if (firstContact) {
-                if (!spectatorRef.current) setStatus('playing')
-                transport.send({
-                  t: 'start',
-                  from: peerIdRef.current,
-                  hostColor: myColorRef.current ?? 'V',
-                  gameId: gameIdRef.current,
-                })
-                transport.send({
-                  t: 'state',
-                  from: peerIdRef.current,
-                  gameId: gameIdRef.current,
-                  seq: seqRef.current,
-                  state: stateRef.current,
-                })
-              }
-            } else if (!isStoreConfigured) {
-              // Layer 1 only (no durable store): mint the game on first contact.
-              // With a store configured the durable row is the single source of
-              // truth, so the host must NEVER create a second generation here --
-              // doing so desynced server-paired (casual) matches.
+          if (!spectatorRef.current && gameIdRef.current !== 0) setStatus('playing')
+
+          // Run the sync handshake ONCE per connection, keyed off peerHandshakeRef
+          // rather than opponentSeen (which hydrate can pre-set). Otherwise the
+          // handshake never fires for casual matches and the two clients stay
+          // unreconciled after the first move.
+          if (peerHandshakeRef.current) break
+          peerHandshakeRef.current = true
+
+          if (gameIdRef.current === 0) {
+            // No durable game id yet. Only Layer 1 (no store) mints one here; with
+            // a store the durable row is the source of truth (hydrate/matchmaking
+            // sets the id), so we never mint a second generation.
+            if (role === 'host' && !isStoreConfigured) {
               const hostColor = options?.hostColor ?? 'V'
               const gameId = Date.now()
               beginGame(gameId, hostColor, 'host', 'create')
-              transport.send({
-                t: 'start',
-                from: peerIdRef.current,
-                hostColor,
-                gameId,
-              })
+              transport.send({ t: 'start', from: peerIdRef.current, hostColor, gameId })
             }
+            break
           }
+
+          // The host announces colour + game id; then BOTH sides push their
+          // current snapshot so the more-advanced one wins, reconciling the two
+          // independent hydrates (e.g. a move made before the peer connected).
+          if (role === 'host') {
+            transport.send({
+              t: 'start',
+              from: peerIdRef.current,
+              hostColor: myColorRef.current ?? 'V',
+              gameId: gameIdRef.current,
+            })
+          }
+          transport.send({
+            t: 'state',
+            from: peerIdRef.current,
+            gameId: gameIdRef.current,
+            seq: seqRef.current,
+            state: stateRef.current,
+          })
           break
         }
 
@@ -270,10 +277,14 @@ export function useOnlineGame(options: Options | null): OnlineGame {
         }
 
         case 'action': {
-          if (msg.gameId !== gameIdRef.current) return
+          if (msg.gameId !== gameIdRef.current) {
+            console.debug('[mp] drop action: gameId %o != %d', msg.gameId, gameIdRef.current)
+            return
+          }
           if (msg.seq < seqRef.current) return // already have it
           if (msg.seq > seqRef.current) {
             // We missed something -- ask for an authoritative snapshot.
+            console.debug('[mp] action ahead seq %d > %d -> resync', msg.seq, seqRef.current)
             transport.send({ t: 'resync', from: peerIdRef.current, gameId: gameIdRef.current })
             return
           }
@@ -281,7 +292,10 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           const next = applyLocal(msg.action, false)
           if (hashState(next) !== msg.hash) {
             // Divergence: trust the sender's state, request a full snapshot.
+            console.debug('[mp] action hash mismatch at seq %d -> resync', msg.seq)
             transport.send({ t: 'resync', from: peerIdRef.current, gameId: gameIdRef.current })
+          } else {
+            console.debug('[mp] applied action seq %d', msg.seq)
           }
           break
         }
@@ -380,6 +394,13 @@ export function useOnlineGame(options: Options | null): OnlineGame {
             // Both seats filled means a real opponent exists; resume playing.
             opponentSeenRef.current = existing.v_token !== null && existing.h_token !== null
             setStatus(opponentSeenRef.current ? 'playing' : 'waiting')
+            console.debug(
+              '[mp] hydrate seat=%s seq=%d gid=%d both=%s',
+              seat,
+              existing.seq,
+              existing.game_id,
+              opponentSeenRef.current,
+            )
           }
         } else if (options.role === 'host') {
           // First time hosting this room: persist a fresh game immediately so it
@@ -461,6 +482,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       seqRef.current = 0
       logRef.current = []
       opponentSeenRef.current = false
+      peerHandshakeRef.current = false
     }
   }, [options, handleMessage, reconnectNonce])
 
@@ -477,6 +499,7 @@ export function useOnlineGame(options: Options | null): OnlineGame {
       const seq = seqRef.current
       // Local mover persists the resulting state to the durable store.
       const next = applyLocal(action, true)
+      console.debug('[mp] send action seq %d gid %d mine %s', seq, gameIdRef.current, mine)
       transport.send({
         t: 'action',
         from: peerIdRef.current,
