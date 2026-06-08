@@ -221,8 +221,31 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           opponentSeenRef.current = true
           if (role === 'host') {
             // Host is authoritative for colour + game id.
-            if (gameIdRef.current === 0) {
-              // No game yet (store off, or pre-create skipped): create one now.
+            if (gameIdRef.current !== 0) {
+              // We already have a durable game (hydrate, or matchmaking, set the
+              // id). On first sight of the opponent, advance to 'playing' and
+              // (re)announce start + full state so they sync.
+              if (firstContact) {
+                if (!spectatorRef.current) setStatus('playing')
+                transport.send({
+                  t: 'start',
+                  from: peerIdRef.current,
+                  hostColor: myColorRef.current ?? 'V',
+                  gameId: gameIdRef.current,
+                })
+                transport.send({
+                  t: 'state',
+                  from: peerIdRef.current,
+                  gameId: gameIdRef.current,
+                  seq: seqRef.current,
+                  state: stateRef.current,
+                })
+              }
+            } else if (!isStoreConfigured) {
+              // Layer 1 only (no durable store): mint the game on first contact.
+              // With a store configured the durable row is the single source of
+              // truth, so the host must NEVER create a second generation here --
+              // doing so desynced server-paired (casual) matches.
               const hostColor = options?.hostColor ?? 'V'
               const gameId = Date.now()
               beginGame(gameId, hostColor, 'host', 'create')
@@ -231,25 +254,6 @@ export function useOnlineGame(options: Options | null): OnlineGame {
                 from: peerIdRef.current,
                 hostColor,
                 gameId,
-              })
-            } else if (firstContact) {
-              // Game already exists (host pre-created it on connect, or this is a
-              // reconnect). Resend start + full state so the guest syncs, and --
-              // crucially -- advance the host out of 'waiting' into 'playing'
-              // now that a real opponent is present.
-              if (!spectatorRef.current) setStatus('playing')
-              transport.send({
-                t: 'start',
-                from: peerIdRef.current,
-                hostColor: myColorRef.current ?? 'V',
-                gameId: gameIdRef.current,
-              })
-              transport.send({
-                t: 'state',
-                from: peerIdRef.current,
-                gameId: gameIdRef.current,
-                seq: seqRef.current,
-                state: stateRef.current,
               })
             }
           }
@@ -401,11 +405,17 @@ export function useOnlineGame(options: Options | null): OnlineGame {
           return
         }
         transportRef.current = transport
-        transport.onMessage(handleMessage)
         setStatus(options.role === 'host' ? 'waiting' : 'connecting')
 
+        // Hydrate from the durable store BEFORE listening for messages, so
+        // gameIdRef is populated first. Otherwise an opponent's hello arriving
+        // mid-hydrate -- the casual case, where the seeker joins an already-
+        // seated room that the other player is already heartbeating into -- gets
+        // handled while gameId is still 0 and would mint a second game
+        // generation, desyncing the two clients.
         await hydrate()
         if (cancelled) return
+        transport.onMessage(handleMessage)
 
         const sayHello = () =>
           transport.send({
