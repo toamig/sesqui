@@ -1,4 +1,4 @@
-// Tournament room: the lobby while gathering, the live bracket once started.
+// Tournament room: a gathering lobby while filling, the live bracket once started.
 // One screen keyed by code; it switches on the tournament's status.
 
 import { useEffect, useState } from 'react'
@@ -17,15 +17,18 @@ import { TournamentBracket } from './TournamentBracket'
 
 interface TournamentLobbyProps {
   code: string
-  /** Left or the lobby was cancelled: return to the tournament hub. */
   onLeave: () => void
-  /** Enter the viewer's own ready match. */
   onPlayMatch: (gameCode: string, role: 'host' | 'guest') => void
-  /** Spectate a live match. */
   onWatchMatch: (gameCode: string) => void
 }
 
 const VALID_COUNTS = [2, 4, 8, 16]
+
+const Crown = (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden>
+    <path d="M3 7l4 3 5-6 5 6 4-3-2 11H5L3 7Z" />
+  </svg>
+)
 
 export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: TournamentLobbyProps) {
   const auth = useAuth(true)
@@ -36,7 +39,6 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Poll the room so the roster fills and the bracket advances live.
   useEffect(() => {
     let active = true
     const tick = () => {
@@ -83,7 +85,6 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
             : 'Could not start the tournament.',
       )
     }
-    // On success the poll picks up status = 'active' and the bracket renders.
   }
 
   if (tournament === undefined) {
@@ -112,6 +113,7 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
   const isHost = auth.user?.id === tournament.host_user
   const inLobby = tournament.status === 'lobby'
   const canStart = isHost && inLobby && VALID_COUNTS.includes(players.length)
+  const pct = Math.min(100, Math.round((players.length / tournament.size) * 100))
 
   return (
     <main className="tournament-lobby">
@@ -130,33 +132,51 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
 
       {inLobby ? (
         <>
-          <div className="t-share">
-            <span className="t-share-label">Invite code</span>
-            <span className="t-share-code">{tournament.code}</span>
-            <button type="button" className="btn btn-sm" onClick={copy}>
+          <header className="tl-hero">
+            <h1>{tournament.name}</h1>
+            <p>
+              Single elimination · best of {tournament.match_length} · {tournament.size} players
+            </p>
+          </header>
+
+          <div className="tl-code">
+            <div className="tl-code-main">
+              <span className="tl-code-label">Invite code</span>
+              <span className="tl-code-val">{tournament.code}</span>
+            </div>
+            <button type="button" className="btn tl-copy" onClick={copy}>
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
 
-          <div className="t-roster">
-            <div className="t-roster-head">
+          <div className="tl-roster">
+            <div className="tl-roster-head">
               <span>Players</span>
-              <span className="t-count">
-                {players.length} / {tournament.size}
+              <span className="tl-count">
+                {players.length}
+                <span> / {tournament.size}</span>
               </span>
             </div>
-            <ul className="t-roster-list">
+            <div className="tl-meter" aria-hidden>
+              <span style={{ width: `${pct}%` }} />
+            </div>
+            <ul className="tl-slots">
               {players.map((p) => (
-                <li key={p.user_id}>
-                  <span className="t-dot" aria-hidden />
-                  <span className="t-name">{p.display_name || 'Player'}</span>
-                  {p.user_id === tournament.host_user && <span className="t-host-tag">host</span>}
+                <li key={p.user_id} className="tl-slot">
+                  <span className="tl-ava">{(p.display_name || 'P')[0]}</span>
+                  <span className="tl-slot-name">{p.display_name || 'Player'}</span>
+                  {p.user_id === tournament.host_user && (
+                    <span className="tl-host">
+                      {Crown}
+                      host
+                    </span>
+                  )}
                 </li>
               ))}
               {Array.from({ length: Math.max(0, tournament.size - players.length) }).map((_, i) => (
-                <li key={`empty-${i}`} className="t-empty">
-                  <span className="t-dot t-dot-empty" aria-hidden />
-                  Waiting for a player…
+                <li key={`empty-${i}`} className="tl-slot tl-slot-empty">
+                  <span className="tl-ava tl-ava-empty" aria-hidden />
+                  <span className="tl-slot-name">Open seat</span>
                 </li>
               ))}
             </ul>
@@ -168,14 +188,14 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
             <>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-primary tl-start"
                 disabled={!canStart || starting}
                 onClick={start}
               >
-                {starting ? 'Starting…' : 'Start tournament'}
+                {starting ? 'Seeding the bracket…' : 'Start tournament'}
               </button>
               {!canStart && (
-                <p className="t-note">Start needs exactly 2, 4, 8, or 16 players (byes coming soon).</p>
+                <p className="t-note">Start unlocks at exactly 2, 4, 8, or 16 players (byes coming soon).</p>
               )}
             </>
           ) : (

@@ -29,3 +29,6 @@ dist-ssr
 # Scratch screenshots / scratch dirs
 _netshots/
 _shots/
+
+# Local showcase screenshots
+tournament-shots/

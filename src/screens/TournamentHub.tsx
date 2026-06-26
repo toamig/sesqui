@@ -1,16 +1,19 @@
-// Tournament entry screen (Phase 1): create a bracket or join one by code.
-// Reached from the online hub (admin-gated during development).
+// Tournament entry: create a bracket or join one by code. Reached from the online
+// hub (admin-gated during development).
 
 import { useState } from 'react'
 import { createTournament, joinTournament } from '../online/tournaments'
 
 interface TournamentHubProps {
   onBack: () => void
-  /** A lobby was created or joined: open it. */
   onEnterLobby: (code: string) => void
 }
 
-const SIZES = [4, 8, 16]
+const SIZES = [
+  { n: 4, rounds: '2 rounds' },
+  { n: 8, rounds: '3 rounds' },
+  { n: 16, rounds: '4 rounds' },
+]
 
 export function TournamentHub({ onBack, onEnterLobby }: TournamentHubProps) {
   const [name, setName] = useState('')
@@ -66,35 +69,36 @@ export function TournamentHub({ onBack, onEnterLobby }: TournamentHubProps) {
         <span className="topbar-spacer" aria-hidden />
       </div>
 
-      <header className="game-header">
+      <header className="th-hero">
         <h1>Tournaments</h1>
-        <p className="subtitle">Host a bracket or join one by code.</p>
+        <p>Host a bracket or join one by code. Single elimination, winner takes the crown.</p>
       </header>
 
       {error && <p className="t-error">{error}</p>}
 
-      <section className="t-card">
-        <h2 className="t-card-title">Create</h2>
-        <label className="t-field">
+      <section className="th-card th-create">
+        <span className="th-eyebrow">Host</span>
+        <label className="th-field">
           <span>Name</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Friday Night Sesqui"
+            placeholder="Friday night Sesqui"
             maxLength={40}
           />
         </label>
-        <div className="t-field">
-          <span>Players</span>
-          <div className="t-sizes">
+        <div className="th-field">
+          <span>Field size</span>
+          <div className="th-sizes">
             {SIZES.map((s) => (
               <button
-                key={s}
+                key={s.n}
                 type="button"
-                className={`t-size${size === s ? ' t-size-on' : ''}`}
-                onClick={() => setSize(s)}
+                className={`th-size${size === s.n ? ' th-size-on' : ''}`}
+                onClick={() => setSize(s.n)}
               >
-                {s}
+                <span className="th-size-n">{s.n}</span>
+                <span className="th-size-sub">{s.rounds}</span>
               </button>
             ))}
           </div>
@@ -104,21 +108,21 @@ export function TournamentHub({ onBack, onEnterLobby }: TournamentHubProps) {
         </button>
       </section>
 
-      <section className="t-card">
-        <h2 className="t-card-title">Join by code</h2>
-        <label className="t-field">
-          <span>Code</span>
+      <section className="th-card th-join">
+        <span className="th-eyebrow">Join</span>
+        <label className="th-field">
+          <span>Invite code</span>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="ABCDE"
             maxLength={6}
-            className="t-code-input"
+            className="th-code-input"
             autoCapitalize="characters"
           />
         </label>
         <button type="button" className="btn" disabled={busy} onClick={join}>
-          Join
+          Join tournament
         </button>
       </section>
     </main>
