@@ -10,7 +10,7 @@ import type { ReactNode } from 'react'
 import { isOnlineConfigured } from '../online/config'
 import { useAuth } from '../online/useAuth'
 
-export type OnlineChoice = 'friend' | 'casual' | 'ranked'
+export type OnlineChoice = 'friend' | 'casual' | 'ranked' | 'tournaments'
 
 interface OnlineHubProps {
   onChoose: (choice: OnlineChoice) => void
@@ -87,6 +87,11 @@ const IconRanked = (
     <path d="M9 20h6M12 17v3" />
   </svg>
 )
+const IconTournament = (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 5h5v6H4M4 13h5v6H4M9 8h4v8H9M13 12h7" />
+  </svg>
+)
 
 export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
   const auth = useAuth(true)
@@ -94,7 +99,7 @@ export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
   // sign-in). Friends play never needs a login.
   const signedIn = isOnlineConfigured && auth.ready && !auth.anonymous
 
-  const chooseMatch = (choice: 'casual' | 'ranked') => {
+  const chooseMatch = (choice: 'casual' | 'ranked' | 'tournaments') => {
     if (signedIn) onChoose(choice)
     else onRequireAuth()
   }
@@ -136,6 +141,16 @@ export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
           badge={<span className="hub-badge hub-badge-soon">Soon</span>}
           disabled
         />
+        {auth.isAdmin && (
+          <HubCard
+            icon={IconTournament}
+            title="Tournaments"
+            subtitle={signedIn ? 'Host or join a bracket' : 'Sign in to play tournaments'}
+            onClick={() => chooseMatch('tournaments')}
+            locked={!signedIn}
+            badge={<span className="hub-badge hub-badge-soon">Beta</span>}
+          />
+        )}
       </nav>
     </main>
   )

@@ -7,6 +7,8 @@ import type { OnlineChoice } from './screens/OnlineHub'
 import { OnlineLobby } from './screens/OnlineLobby'
 import { MatchSearch } from './screens/MatchSearch'
 import { OnlineScreen } from './screens/OnlineScreen'
+import { TournamentHub } from './screens/TournamentHub'
+import { TournamentLobby } from './screens/TournamentLobby'
 import { ProfileScreen } from './screens/ProfileScreen'
 import { ReplayScreen } from './screens/ReplayScreen'
 import { EngineSelect } from './screens/EngineSelect'
@@ -32,6 +34,8 @@ type View =
   | 'profile'
   | 'replay'
   | 'ai-setup'
+  | 'tournament-hub'
+  | 'tournament-lobby'
 
 interface RoomSession {
   room: string
@@ -68,6 +72,7 @@ export default function App() {
   const [profileReturn, setProfileReturn] = useState<View>('menu')
   // The replay currently open in the step-through viewer.
   const [replayId, setReplayId] = useState<number | null>(null)
+  const [tournamentCode, setTournamentCode] = useState<string | null>(null)
   // vs-Computer pre-game choices (engine + side); the nonce forces a fresh game
   // each time "Start" is pressed, even with unchanged settings.
   const [aiEngine, setAiEngine] = useState<Difficulty>(Difficulty.Neural)
@@ -122,6 +127,7 @@ export default function App() {
   /** Online hub choices: friend room, or casual/ranked matchmaking. */
   const handleOnlineChoice = (choice: OnlineChoice) => {
     if (choice === 'friend') setView('lobby')
+    else if (choice === 'tournaments') setView('tournament-hub')
     else {
       setMatchRanked(choice === 'ranked')
       setView('match')
@@ -164,6 +170,24 @@ export default function App() {
         ranked={matchRanked}
         onCancel={() => setView('online-hub')}
         onMatched={enterRoom}
+      />
+    )
+  } else if (view === 'tournament-hub') {
+    screen = (
+      <TournamentHub
+        onBack={() => setView('online-hub')}
+        onEnterLobby={(code) => {
+          setTournamentCode(code)
+          setView('tournament-lobby')
+        }}
+      />
+    )
+  } else if (view === 'tournament-lobby' && tournamentCode) {
+    screen = (
+      <TournamentLobby
+        key={tournamentCode}
+        code={tournamentCode}
+        onLeave={() => setView('tournament-hub')}
       />
     )
   } else if (view === 'online' && session) {
