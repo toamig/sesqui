@@ -73,6 +73,7 @@ export default function App() {
   // The replay currently open in the step-through viewer.
   const [replayId, setReplayId] = useState<number | null>(null)
   const [tournamentCode, setTournamentCode] = useState<string | null>(null)
+  const [tournamentReturn, setTournamentReturn] = useState<string | null>(null)
   // vs-Computer pre-game choices (engine + side); the nonce forces a fresh game
   // each time "Start" is pressed, even with unchanged settings.
   const [aiEngine, setAiEngine] = useState<Difficulty>(Difficulty.Neural)
@@ -109,6 +110,28 @@ export default function App() {
   const leaveRoom = () => {
     setSession(null)
     setView('menu')
+  }
+
+  // Enter a tournament match game, remembering the bracket to return to.
+  const playTournamentMatch = (gameCode: string, role: 'host' | 'guest') => {
+    setTournamentReturn(tournamentCode)
+    enterRoom(gameCode, role)
+  }
+  const watchTournamentMatch = (gameCode: string) => {
+    setTournamentReturn(tournamentCode)
+    enterRoom(gameCode, 'guest')
+  }
+  // Leaving an online game returns to its tournament bracket if it came from one,
+  // otherwise to the menu.
+  const leaveOnlineGame = () => {
+    if (tournamentReturn) {
+      setSession(null)
+      setTournamentCode(tournamentReturn)
+      setTournamentReturn(null)
+      setView('tournament-lobby')
+    } else {
+      leaveRoom()
+    }
   }
 
   /** Menu choices route to the right screen. */
@@ -188,6 +211,8 @@ export default function App() {
         key={tournamentCode}
         code={tournamentCode}
         onLeave={() => setView('tournament-hub')}
+        onPlayMatch={playTournamentMatch}
+        onWatchMatch={watchTournamentMatch}
       />
     )
   } else if (view === 'online' && session) {
@@ -196,7 +221,7 @@ export default function App() {
         key={`${session.room}-${session.role}`}
         room={session.room}
         role={session.role}
-        onLeave={leaveRoom}
+        onLeave={leaveOnlineGame}
       />
     )
   } else if (view === 'profile') {

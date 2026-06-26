@@ -66,6 +66,48 @@ export async function getTournament(code: string): Promise<Tournament | null> {
   return data as Tournament
 }
 
+export interface TournamentMatch {
+  id: number
+  round: number
+  slot: number
+  player_a: string | null
+  player_b: string | null
+  a_color: string | null
+  game_code: string | null
+  winner: string | null
+  status: 'pending' | 'ready' | 'playing' | 'done'
+}
+
+export interface StartResult {
+  ok: boolean
+  error?: string
+  players?: number
+  rounds?: number
+}
+
+/** Host-only: seed the bracket and start round 1. */
+export async function startTournament(code: string): Promise<StartResult> {
+  const client = await getSupabase()
+  if (!client) return { ok: false, error: 'offline' }
+  const { data, error } = await client.rpc('start_tournament', { p_code: code })
+  if (error || !data) return { ok: false, error: 'offline' }
+  return data as StartResult
+}
+
+/** Fetch all bracket matches, ordered by round then slot. */
+export async function getMatches(code: string): Promise<TournamentMatch[]> {
+  const client = await getSupabase()
+  if (!client) return []
+  const { data, error } = await client
+    .from('tournament_matches')
+    .select('id, round, slot, player_a, player_b, a_color, game_code, winner, status')
+    .eq('tournament_code', code)
+    .order('round')
+    .order('slot')
+  if (error || !data) return []
+  return data as TournamentMatch[]
+}
+
 /** Fetch the roster (join order). */
 export async function getPlayers(code: string): Promise<TournamentPlayer[]> {
   const client = await getSupabase()

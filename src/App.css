@@ -1869,3 +1869,102 @@
   text-align: center;
   margin: 0.5rem 0;
 }
+
+.t-bracket-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.t-champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid var(--accent);
+}
+
+.t-champion-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.t-champion-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.t-bracket {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.t-round {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 9.5rem;
+  justify-content: space-around;
+}
+
+.t-round-title {
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.t-match {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 10px;
+  background: var(--surface, rgba(255, 255, 255, 0.04));
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.t-match-playing {
+  border-color: #46d17f;
+}
+
+.t-seats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.t-seat {
+  font-size: 0.85rem;
+  color: var(--text-strong);
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.t-seat-win {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.t-match-btn {
+  width: 100%;
+}
+
+.t-match-tag {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+}
