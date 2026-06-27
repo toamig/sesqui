@@ -2055,9 +2055,12 @@
   border-color: var(--accent-2);
   box-shadow: 0 0 0 1px var(--accent-2), 0 0 16px color-mix(in srgb, var(--accent-2) 32%, transparent);
 }
+/* Your own live match is flagged by its "YOUR MATCH" label and the gold call-to
+   -action banner up top, so the card itself stays in the purple "live" colour
+   like any other in-progress match. Gold is reserved for settled wires, winner
+   seats and the champion, so the two never read as the same thing. */
 .tbk-mine.tbk-playing {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 0 16px color-mix(in srgb, var(--accent) 32%, transparent);
+  box-shadow: 0 0 0 1px var(--accent-2), 0 0 20px color-mix(in srgb, var(--accent-2) 45%, transparent);
 }
 .tbk-clickable {
   cursor: pointer;
@@ -2123,7 +2126,7 @@
   color: var(--accent-2-soft);
 }
 .tbk-mine .tbk-live {
-  color: var(--accent);
+  color: var(--accent-2);
 }
 .tbk-livedot {
   width: 6px;
