@@ -1695,13 +1695,15 @@
 /* --- Tournaments -------------------------------------------------------- */
 .tournament-hub,
 .tournament-lobby {
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1.1rem;
   max-width: 34rem;
   margin: 0 auto;
   width: 100%;
-  padding: 0 1rem 2.5rem;
+  padding: 1.25rem 1rem 2.5rem;
 }
 
 .t-error {
@@ -2383,13 +2385,11 @@
     margin-top: 0;
   }
 
-  /* ---- Tournament hub & lobby: wider, and vertically centred like the rest
-         (they ship without min-height, so on desktop they clung to the top) ---- */
+  /* ---- Tournament hub & lobby: wider on desktop (centring + min-height now
+         live in the base rule, shared with every other screen) ---- */
   .tournament-hub,
   .tournament-lobby {
     max-width: 46rem;
-    min-height: 100%;
-    justify-content: center;
   }
 
   /* ---- Bracket: centre the tree, and keep the champion plate from
