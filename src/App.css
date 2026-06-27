@@ -1994,6 +1994,10 @@
   --gap: 2.3rem;
 }
 .tbk-scroll {
+  display: flex;
+  /* Centre the tree when it fits; "safe" falls back to start (still
+     scrollable) when a big bracket is wider than the screen. */
+  justify-content: safe center;
   overflow-x: auto;
   margin: 0 -1rem;
   padding: 0.4rem 1rem 1.2rem;
@@ -2296,6 +2300,23 @@ body {
   overflow-x: clip;
 }
 
+/* Mobile (< 880px): one column width so the topbar, the menu / hub cards and
+   the lobby / matchmaking forms line up on the same left/right edges as the
+   board (already ~92vw). Before this they were capped narrower (420px) than the
+   topbar (96vw), so the back button hung out past the cards. The desktop layer
+   below re-widths everything to --stage. */
+@media (max-width: 879px) {
+  .screen-topbar,
+  .menu-list,
+  .menu-footer,
+  .hub-list,
+  .lobby-card,
+  .search-card,
+  .invite-panel {
+    width: min(92vw, 33rem);
+  }
+}
+
 /* =============================================================== *
  * Desktop composition (>= 880px)                                  *
  * --------------------------------------------------------------- *
@@ -2410,11 +2431,7 @@ body {
     width: min(calc(var(--stage) - 2 * var(--board-pad)), 60vh);
   }
 
-  /* Bracket centred under a proportioned champion plate. */
-  .tbk-scroll {
-    display: flex;
-    justify-content: center;
-  }
+  /* Champion plate proportioned (bracket centring lives in the base .tbk-scroll). */
   .tbk-crown {
     width: 100%;
     max-width: 32rem;
