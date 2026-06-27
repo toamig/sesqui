@@ -291,7 +291,10 @@
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: var(--board-gap);
-  width: min(92vw, var(--board-max));
+  /* Size the board so the FRAME (board + its padding) is 92vw, not the board
+     itself: otherwise the padding pushed the frame a few px off the right edge
+     on phones, making it look clipped. */
+  width: min(calc(92vw - 2 * var(--board-pad)), var(--board-max));
   aspect-ratio: 1 / 1;
   background: var(--board-bg);
   border-radius: var(--board-radius);
@@ -2283,27 +2286,35 @@
 }
 
 
+/* Belt-and-braces: clip any horizontal overflow so nothing (e.g. a board sized
+   in vw that a scrollbar nudges over) can leave the screen on the right.
+   Vertical scrolling is unaffected; the bracket keeps its own internal scroll. */
+body {
+  overflow-x: clip;
+}
+
 /* =============================================================== *
  * Desktop composition (>= 880px)                                  *
  * --------------------------------------------------------------- *
- * The app is authored mobile-first: every screen is a narrow,     *
- * centred column, and only the main menu centres vertically, so   *
- * on widescreen everything else clings to the top with dead       *
- * margins all around. Below 880px none of this applies. On wider  *
- * viewports we (1) centre content optically, (2) spread the       *
- * landing / hub / engine screens into card grids, (3) grow the    *
- * board into a proper table, and (4) give the profile and bracket *
- * room to breathe. Cohesive with the dark/gold tournament-hall    *
- * identity; no colours or components are reinvented here.         *
+ * Mobile-first base; below 880px none of this applies. On wider   *
+ * viewports every screen shares ONE content width (--stage) for   *
+ * both its topbar and its body, so the back button, title and     *
+ * content line up the same on every page. The menu/hub/engine     *
+ * become card grids, the board fills the stage, and the body      *
+ * centres beneath a pinned topbar. Dark/gold identity throughout. *
  * =============================================================== */
 @media (min-width: 880px) {
-  /* Pin each screen's topbar to the top so the back button + page name sit in
-     the same place on every page, aligned with the fixed account avatar.
-     (Centring the whole column moved the chrome around as content height
-     changed.) The body still centres in the leftover height: the topbar's auto
-     bottom-margin and the last row's auto bottom-margin split the free space,
-     so short pages don't cling to the top. Tall pages collapse the autos to 0
-     and scroll normally. */
+  /* One shared content width for the whole desktop layout. Every screen's body
+     AND its topbar use --stage, so the back button, the page title and the
+     content all sit on the same left/right edges on every page. Widths use %
+     (never vw), so a scrollbar can't push anything off the right. */
+  :root {
+    --stage: 680px;
+  }
+
+  /* Pin the topbar to the top of each screen (so the chrome lines up with the
+     fixed account avatar and never shifts page to page); centre the body in the
+     leftover height with auto margins above the first row and below the last. */
   .online-hub,
   .online-lobby,
   .match-search,
@@ -2327,7 +2338,24 @@
     margin-bottom: auto;
   }
 
-  /* ---- Main menu: a grander wordmark over a 2x2 action grid ---- */
+  /* The shared width, applied to the topbar and the body column on every screen. */
+  .screen-topbar,
+  .menu-list,
+  .menu-footer,
+  .hub-list,
+  .lobby-card,
+  .search-card,
+  .invite-panel {
+    width: min(94%, var(--stage));
+  }
+  .engine-select > *:not(.screen-topbar),
+  .profile-screen > *:not(.screen-topbar),
+  .tournament-hub,
+  .tournament-lobby {
+    max-width: var(--stage);
+  }
+
+  /* Landing menu: a grander wordmark over a 2x2 action grid. */
   .menu-wordmark {
     font-size: clamp(4.4rem, 6.5vw, 6rem);
   }
@@ -2336,31 +2364,13 @@
     max-width: none;
   }
   .menu-list {
-    width: min(92vw, 640px);
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.9rem;
   }
-  .menu-footer {
-    width: min(92vw, 640px);
-  }
 
-  /* ---- Shared topbars widen to sit over the roomier content ---- */
-  .online-hub .screen-topbar {
-    width: min(96vw, 680px);
-  }
-  .engine-select .screen-topbar,
-  .profile-screen .screen-topbar {
-    width: min(96vw, 720px);
-  }
-  .game-screen .screen-topbar,
-  .replay-screen .screen-topbar {
-    width: min(96vw, 600px);
-  }
-
-  /* ---- Online hub: three tiles across, icon stacked above the text ---- */
+  /* Online hub: the four cards as a 2x2 of tall tiles. */
   .hub-list {
-    width: min(92vw, 680px);
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.9rem;
@@ -2377,49 +2387,27 @@
     margin-top: auto;
   }
 
-  /* ---- Engine picker: two columns ---- */
-  .engine-select > *:not(.screen-topbar) {
-    max-width: 720px;
-  }
+  /* Engine picker: two columns. Profile: four stats abreast. */
   .engine-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.6rem;
   }
-
-  /* ---- The board grows into a proper table (caps by height too so it
-         never crowds out the status and controls on short windows) ---- */
-  .board {
-    width: min(90vw, 72vh, 560px);
-  }
-
-  /* ---- Profile: wider, with four stats abreast ---- */
-  .profile-screen > *:not(.screen-topbar) {
-    max-width: 44rem;
-  }
   .profile-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  /* ---- Friend lobby / matchmaking / invite: roomier and centred ---- */
-  .lobby-card,
-  .search-card,
-  .invite-panel {
-    width: min(92vw, 30rem);
   }
   .search-card {
     margin-top: 0;
   }
 
-  /* ---- Tournament hub & lobby: wider on desktop (centring + min-height now
-         live in the base rule, shared with every other screen) ---- */
-  .tournament-hub,
-  .tournament-lobby {
-    max-width: 46rem;
+  /* The board fills the stage (frame = board + padding = --stage), capped by
+     height so it never crowds out the status + controls. Bigger than before, so
+     the game screen reads as a real table rather than a small board adrift. */
+  .board {
+    width: min(calc(var(--stage) - 2 * var(--board-pad)), 60vh);
   }
 
-  /* ---- Bracket: centre the tree, and keep the champion plate from
-         stretching into a wide, empty bar ---- */
+  /* Bracket centred under a proportioned champion plate. */
   .tbk-scroll {
     display: flex;
     justify-content: center;
