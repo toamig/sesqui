@@ -2063,28 +2063,34 @@
   cursor: pointer;
 }
 
+/* Round-to-round connector wires. Each match sends a rounded elbow from its
+   right edge: the top match of a pair curves down, the bottom one curves up,
+   and their verticals meet at the next match's left edge, forming one smooth
+   bracket. Gold (with a soft glow) traces a settled pairing; muted otherwise.
+   --wire is set per match so the elbow and its glow recolour together. */
 .tbk-round:not(:last-child) .tbk-match::after {
   content: "";
   position: absolute;
-  top: 50%;
   left: 100%;
   width: var(--gap);
-  height: 2px;
-  margin-top: -1px;
-  background: var(--surface-border);
+  height: calc(var(--slot) * var(--pow) / 2);
+  border-right: 2px solid var(--wire, var(--surface-border));
+}
+.tbk-round:not(:last-child) .tbk-match:nth-child(odd)::after {
+  top: 50%;
+  border-top: 2px solid var(--wire, var(--surface-border));
+  border-top-right-radius: 13px;
+}
+.tbk-round:not(:last-child) .tbk-match:nth-child(even)::after {
+  bottom: 50%;
+  border-bottom: 2px solid var(--wire, var(--surface-border));
+  border-bottom-right-radius: 13px;
+}
+.tbk-round:not(:last-child) .tbk-match.tbk-done {
+  --wire: var(--accent);
 }
 .tbk-round:not(:last-child) .tbk-match.tbk-done::after {
-  background: var(--accent);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 55%, transparent);
-}
-.tbk-round:not(:last-child) .tbk-match:nth-child(odd)::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: calc(100% + var(--gap));
-  width: 2px;
-  height: calc(var(--slot) * var(--pow));
-  background: var(--surface-border);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent));
 }
 
 .tbk-bar {
