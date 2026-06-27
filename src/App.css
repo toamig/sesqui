@@ -1698,12 +1698,20 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 1.1rem;
   max-width: 34rem;
   margin: 0 auto;
   width: 100%;
   padding: 1.25rem 1rem 2.5rem;
+}
+
+/* Pin the topbar to the top, centre the body beneath it (same treatment as
+   every other screen) so the back button never shifts between pages. */
+.tournament-hub > .screen-topbar,
+.tournament-lobby > .screen-topbar,
+.tournament-hub > :last-child,
+.tournament-lobby > :last-child {
+  margin-bottom: auto;
 }
 
 .t-error {
@@ -2289,16 +2297,34 @@
  * identity; no colours or components are reinvented here.         *
  * =============================================================== */
 @media (min-width: 880px) {
-  /* Optical vertical centring for the short screens. min-height (not a
-     fixed height) means tall content still grows and scrolls, so centring
-     never clips anything off the top. The menu already does this. */
+  /* Pin each screen's topbar to the top so the back button + page name sit in
+     the same place on every page, aligned with the fixed account avatar.
+     (Centring the whole column moved the chrome around as content height
+     changed.) The body still centres in the leftover height: the topbar's auto
+     bottom-margin and the last row's auto bottom-margin split the free space,
+     so short pages don't cling to the top. Tall pages collapse the autos to 0
+     and scroll normally. */
   .online-hub,
   .online-lobby,
   .match-search,
   .engine-select,
   .game-screen,
   .replay-screen {
-    justify-content: center;
+    justify-content: flex-start;
+  }
+  .online-hub > .screen-topbar,
+  .online-lobby > .screen-topbar,
+  .match-search > .screen-topbar,
+  .engine-select > .screen-topbar,
+  .game-screen > .screen-topbar,
+  .replay-screen > .screen-topbar,
+  .online-hub > :last-child,
+  .online-lobby > :last-child,
+  .match-search > :last-child,
+  .engine-select > :last-child,
+  .game-screen > :last-child,
+  .replay-screen > :last-child {
+    margin-bottom: auto;
   }
 
   /* ---- Main menu: a grander wordmark over a 2x2 action grid ---- */
