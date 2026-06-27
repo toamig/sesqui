@@ -2347,7 +2347,7 @@
 
   /* ---- Shared topbars widen to sit over the roomier content ---- */
   .online-hub .screen-topbar {
-    width: min(96vw, 840px);
+    width: min(96vw, 680px);
   }
   .engine-select .screen-topbar,
   .profile-screen .screen-topbar {
@@ -2360,9 +2360,9 @@
 
   /* ---- Online hub: three tiles across, icon stacked above the text ---- */
   .hub-list {
-    width: min(92vw, 840px);
+    width: min(92vw, 680px);
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.9rem;
     align-items: stretch;
   }

@@ -1,6 +1,7 @@
 // Online hub: the ways to play online. Flat, fixed cards (no expansions).
 //   - Play a Friend  -> private room by code (always casual, no login needed)
 //   - Casual Match   -> matchmaking, unranked, requires sign-in
+//   - Tournaments    -> host/join a bracket (beta), requires sign-in
 //   - Ranked Match   -> disabled "coming soon" until the ranking backend lands,
 //                       so players aren't dropped into a feature that isn't real
 // Identity / sign-in lives in the global account drawer (the avatar, top-right),
@@ -135,22 +136,20 @@ export function OnlineHub({ onChoose, onBack, onRequireAuth }: OnlineHubProps) {
           locked={!signedIn}
         />
         <HubCard
+          icon={IconTournament}
+          title="Tournaments"
+          subtitle={signedIn ? 'Host or join a bracket' : 'Sign in to play tournaments'}
+          onClick={() => chooseMatch('tournaments')}
+          locked={!signedIn}
+          badge={<span className="hub-badge hub-badge-soon">Beta</span>}
+        />
+        <HubCard
           icon={IconRanked}
           title="Ranked Match"
           subtitle="Competitive ladder is coming soon"
           badge={<span className="hub-badge hub-badge-soon">Soon</span>}
           disabled
         />
-        {auth.isAdmin && (
-          <HubCard
-            icon={IconTournament}
-            title="Tournaments"
-            subtitle={signedIn ? 'Host or join a bracket' : 'Sign in to play tournaments'}
-            onClick={() => chooseMatch('tournaments')}
-            locked={!signedIn}
-            badge={<span className="hub-badge hub-badge-soon">Beta</span>}
-          />
-        )}
       </nav>
     </main>
   )
