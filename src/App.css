@@ -2039,7 +2039,10 @@
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 11px;
-  overflow: hidden;
+  /* NOT overflow:hidden — the round-to-round connector lines are ::before /
+     ::after pseudo-elements that sit just outside the card on the right; a
+     clip here would erase them. The seats are inset by padding, so nothing
+     needs clipping anyway. */
 }
 .tbk-round:last-child .tbk-match {
   margin-right: 0;
