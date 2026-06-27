@@ -2271,3 +2271,136 @@
     animation: none;
   }
 }
+
+
+/* =============================================================== *
+ * Desktop composition (>= 880px)                                  *
+ * --------------------------------------------------------------- *
+ * The app is authored mobile-first: every screen is a narrow,     *
+ * centred column, and only the main menu centres vertically, so   *
+ * on widescreen everything else clings to the top with dead       *
+ * margins all around. Below 880px none of this applies. On wider  *
+ * viewports we (1) centre content optically, (2) spread the       *
+ * landing / hub / engine screens into card grids, (3) grow the    *
+ * board into a proper table, and (4) give the profile and bracket *
+ * room to breathe. Cohesive with the dark/gold tournament-hall    *
+ * identity; no colours or components are reinvented here.         *
+ * =============================================================== */
+@media (min-width: 880px) {
+  /* Optical vertical centring for the short screens. min-height (not a
+     fixed height) means tall content still grows and scrolls, so centring
+     never clips anything off the top. The menu already does this. */
+  .online-hub,
+  .online-lobby,
+  .match-search,
+  .engine-select,
+  .game-screen,
+  .replay-screen {
+    justify-content: center;
+  }
+
+  /* ---- Main menu: a grander wordmark over a 2x2 action grid ---- */
+  .menu-wordmark {
+    font-size: clamp(4.4rem, 6.5vw, 6rem);
+  }
+  .menu-tagline {
+    font-size: 1.05rem;
+    max-width: none;
+  }
+  .menu-list {
+    width: min(92vw, 640px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+  }
+  .menu-footer {
+    width: min(92vw, 640px);
+  }
+
+  /* ---- Shared topbars widen to sit over the roomier content ---- */
+  .online-hub .screen-topbar {
+    width: min(96vw, 840px);
+  }
+  .engine-select .screen-topbar,
+  .profile-screen .screen-topbar {
+    width: min(96vw, 720px);
+  }
+  .game-screen .screen-topbar,
+  .replay-screen .screen-topbar {
+    width: min(96vw, 600px);
+  }
+
+  /* ---- Online hub: three tiles across, icon stacked above the text ---- */
+  .hub-list {
+    width: min(92vw, 840px);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.9rem;
+    align-items: stretch;
+  }
+  .hub-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 1.3rem 1.25rem;
+  }
+  .hub-arrow {
+    align-self: flex-end;
+    margin-top: auto;
+  }
+
+  /* ---- Engine picker: two columns ---- */
+  .engine-select > *:not(.screen-topbar) {
+    max-width: 720px;
+  }
+  .engine-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  /* ---- The board grows into a proper table (caps by height too so it
+         never crowds out the status and controls on short windows) ---- */
+  .board {
+    width: min(90vw, 72vh, 560px);
+  }
+
+  /* ---- Profile: wider, with four stats abreast ---- */
+  .profile-screen > *:not(.screen-topbar) {
+    max-width: 44rem;
+  }
+  .profile-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* ---- Friend lobby / matchmaking / invite: roomier and centred ---- */
+  .lobby-card,
+  .search-card,
+  .invite-panel {
+    width: min(92vw, 30rem);
+  }
+  .search-card {
+    margin-top: 0;
+  }
+
+  /* ---- Tournament hub & lobby: wider, and vertically centred like the rest
+         (they ship without min-height, so on desktop they clung to the top) ---- */
+  .tournament-hub,
+  .tournament-lobby {
+    max-width: 46rem;
+    min-height: 100%;
+    justify-content: center;
+  }
+
+  /* ---- Bracket: centre the tree, and keep the champion plate from
+         stretching into a wide, empty bar ---- */
+  .tbk-scroll {
+    display: flex;
+    justify-content: center;
+  }
+  .tbk-crown {
+    width: 100%;
+    max-width: 32rem;
+    margin-inline: auto;
+  }
+}
