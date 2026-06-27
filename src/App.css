@@ -2072,24 +2072,39 @@
   content: "";
   position: absolute;
   left: 100%;
-  width: var(--gap);
+  width: calc(var(--gap) * 0.6);
   height: calc(var(--slot) * var(--pow) / 2);
   border-right: 2px solid var(--wire, var(--surface-border));
 }
 .tbk-round:not(:last-child) .tbk-match:nth-child(odd)::after {
   top: 50%;
   border-top: 2px solid var(--wire, var(--surface-border));
-  border-top-right-radius: 13px;
+  border-top-right-radius: 10px;
 }
 .tbk-round:not(:last-child) .tbk-match:nth-child(even)::after {
   bottom: 50%;
   border-bottom: 2px solid var(--wire, var(--surface-border));
-  border-bottom-right-radius: 13px;
+  border-bottom-right-radius: 10px;
+}
+/* The trunk: from where the pair's two elbows meet, a short straight wire into
+   the next match's left edge, so the bracket visibly connects to it instead of
+   the card sitting on top of the junction. Drawn once, on the odd match, at the
+   centre between the pair (= the next match's middle). */
+.tbk-round:not(:last-child) .tbk-match:nth-child(odd)::before {
+  content: "";
+  position: absolute;
+  top: calc(50% + var(--slot) * var(--pow) / 2);
+  left: calc(100% + var(--gap) * 0.6);
+  width: calc(var(--gap) * 0.4);
+  height: 2px;
+  margin-top: -1px;
+  background: var(--wire, var(--surface-border));
 }
 .tbk-round:not(:last-child) .tbk-match.tbk-done {
   --wire: var(--accent);
 }
-.tbk-round:not(:last-child) .tbk-match.tbk-done::after {
+.tbk-round:not(:last-child) .tbk-match.tbk-done::after,
+.tbk-round:not(:last-child) .tbk-match.tbk-done::before {
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent));
 }
 
