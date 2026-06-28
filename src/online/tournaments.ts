@@ -24,6 +24,7 @@ export interface TournamentPlayer {
   display_name: string | null
   seed: number | null
   eliminated_round: number | null
+  is_bot: boolean
 }
 
 /** Create a lobby and auto-join as host. Returns the share code, or null. */
@@ -114,9 +115,38 @@ export async function getPlayers(code: string): Promise<TournamentPlayer[]> {
   if (!client) return []
   const { data, error } = await client
     .from('tournament_players')
-    .select('user_id, display_name, seed, eliminated_round')
+    .select('user_id, display_name, seed, eliminated_round, is_bot')
     .eq('tournament_code', code)
     .order('joined_at')
   if (error || !data) return []
   return data as TournamentPlayer[]
+}
+
+/** Host-only: drop a bot into an open lobby seat. */
+export async function addBot(code: string): Promise<JoinResult> {
+  const client = await getSupabase()
+  if (!client) return { ok: false, error: 'offline' }
+  const { data, error } = await client.rpc('add_tournament_bot', { p_code: code })
+  if (error || !data) return { ok: false, error: 'offline' }
+  return data as JoinResult
+}
+
+/** Host-only: remove a bot from the lobby. */
+export async function removeBot(code: string, userId: string): Promise<void> {
+  const client = await getSupabase()
+  if (!client) return
+  await client.rpc('remove_tournament_bot', { p_code: code, p_user_id: userId })
+}
+
+/** Report the result of your own human-vs-bot match (played locally, or via the
+ *  host "simulate" shortcut). winner is the user_id of whoever won. */
+export async function reportBotResult(matchId: number, winner: string): Promise<boolean> {
+  const client = await getSupabase()
+  if (!client) return false
+  const { data, error } = await client.rpc('report_bot_match_result', {
+    p_match_id: matchId,
+    p_winner: winner,
+  })
+  if (error || !data) return false
+  return (data as { ok: boolean }).ok === true
 }

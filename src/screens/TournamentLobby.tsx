@@ -4,10 +4,13 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../online/useAuth'
 import {
+  addBot,
   getMatches,
   getPlayers,
   getTournament,
   leaveTournament,
+  removeBot,
+  reportBotResult,
   startTournament,
   type Tournament,
   type TournamentMatch,
@@ -20,6 +23,7 @@ interface TournamentLobbyProps {
   onLeave: () => void
   onPlayMatch: (gameCode: string, role: 'host' | 'guest') => void
   onWatchMatch: (gameCode: string) => void
+  onPlayBot: (matchId: number, myId: string, botId: string) => void
 }
 
 const VALID_COUNTS = [2, 4, 8, 16]
@@ -30,7 +34,13 @@ const Crown = (
   </svg>
 )
 
-export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: TournamentLobbyProps) {
+export function TournamentLobby({
+  code,
+  onLeave,
+  onPlayMatch,
+  onWatchMatch,
+  onPlayBot,
+}: TournamentLobbyProps) {
   const auth = useAuth(true)
   const [tournament, setTournament] = useState<Tournament | null | undefined>(undefined)
   const [players, setPlayers] = useState<TournamentPlayer[]>([])
@@ -86,6 +96,18 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
       )
     }
   }
+
+  const refreshPlayers = () => void getPlayers(code).then(setPlayers)
+  const addBotHandler = () => void addBot(code).then(refreshPlayers)
+  const removeBotHandler = (userId: string) => void removeBot(code, userId).then(refreshPlayers)
+  const refreshAll = () => {
+    void getTournament(code).then(setTournament)
+    void getPlayers(code).then(setPlayers)
+    void getMatches(code).then(setMatches)
+  }
+  // "Simulate": instant-resolve a bot match with a random winner.
+  const simulate = (matchId: number, myId: string, botId: string) =>
+    void reportBotResult(matchId, Math.random() < 0.5 ? myId : botId).then(refreshAll)
 
   if (tournament === undefined) {
     return (
@@ -163,22 +185,46 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
             <ul className="tl-slots">
               {players.map((p) => (
                 <li key={p.user_id} className="tl-slot">
-                  <span className="tl-ava">{(p.display_name || 'P')[0]}</span>
+                  <span className={`tl-ava${p.is_bot ? ' tl-ava-bot' : ''}`}>
+                    {(p.display_name || 'P')[0]}
+                  </span>
                   <span className="tl-slot-name">{p.display_name || 'Player'}</span>
+                  {p.is_bot && <span className="tl-bot-tag">bot</span>}
                   {p.user_id === tournament.host_user && (
                     <span className="tl-host">
                       {Crown}
                       host
                     </span>
                   )}
+                  {isHost && inLobby && p.is_bot && (
+                    <button
+                      type="button"
+                      className="tl-bot-remove"
+                      onClick={() => removeBotHandler(p.user_id)}
+                      aria-label="Remove bot"
+                    >
+                      ×
+                    </button>
+                  )}
                 </li>
               ))}
-              {Array.from({ length: Math.max(0, tournament.size - players.length) }).map((_, i) => (
-                <li key={`empty-${i}`} className="tl-slot tl-slot-empty">
-                  <span className="tl-ava tl-ava-empty" aria-hidden />
-                  <span className="tl-slot-name">Open seat</span>
-                </li>
-              ))}
+              {Array.from({ length: Math.max(0, tournament.size - players.length) }).map((_, i) =>
+                isHost && inLobby ? (
+                  <li key={`empty-${i}`} className="tl-slot tl-slot-empty">
+                    <button type="button" className="tl-add-bot" onClick={addBotHandler}>
+                      <span className="tl-ava tl-ava-empty" aria-hidden>
+                        +
+                      </span>
+                      <span className="tl-slot-name">Add a bot</span>
+                    </button>
+                  </li>
+                ) : (
+                  <li key={`empty-${i}`} className="tl-slot tl-slot-empty">
+                    <span className="tl-ava tl-ava-empty" aria-hidden />
+                    <span className="tl-slot-name">Open seat</span>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
 
@@ -210,6 +256,8 @@ export function TournamentLobby({ code, onLeave, onPlayMatch, onWatchMatch }: To
           meId={auth.user?.id ?? null}
           onPlay={onPlayMatch}
           onWatch={onWatchMatch}
+          onPlayBot={onPlayBot}
+          onSimulate={simulate}
         />
       )}
     </main>

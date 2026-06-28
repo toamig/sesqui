@@ -17,6 +17,7 @@ import type { Player } from './game/types'
 import { AccountButton } from './components/AccountButton'
 import { AccountDrawer } from './components/AccountDrawer'
 import { handleOAuthRedirect } from './online/auth'
+import { reportBotResult } from './online/tournaments'
 import { normalizeRoomCode } from './online/protocol'
 import { applySkin, readStoredSkin } from './theme'
 import type { SkinId } from './theme'
@@ -36,6 +37,7 @@ type View =
   | 'ai-setup'
   | 'tournament-hub'
   | 'tournament-lobby'
+  | 'tournament-game'
 
 interface RoomSession {
   room: string
@@ -74,6 +76,14 @@ export default function App() {
   const [replayId, setReplayId] = useState<number | null>(null)
   const [tournamentCode, setTournamentCode] = useState<string | null>(null)
   const [tournamentReturn, setTournamentReturn] = useState<string | null>(null)
+  // The current human-vs-bot tournament match being played locally, if any.
+  const [botMatch, setBotMatch] = useState<{
+    matchId: number
+    myId: string
+    botId: string
+    side: Player
+    engine: Difficulty
+  } | null>(null)
   // vs-Computer pre-game choices (engine + side); the nonce forces a fresh game
   // each time "Start" is pressed, even with unchanged settings.
   const [aiEngine, setAiEngine] = useState<Difficulty>(Difficulty.Neural)
@@ -120,6 +130,27 @@ export default function App() {
   const watchTournamentMatch = (gameCode: string) => {
     setTournamentReturn(tournamentCode)
     enterRoom(gameCode, 'guest')
+  }
+  // A human-vs-bot tournament match has no online game: play it locally vs the
+  // engine, then report the winner so the bracket advances.
+  const playTournamentBotMatch = (matchId: number, myId: string, botId: string) => {
+    setBotMatch({
+      matchId,
+      myId,
+      botId,
+      side: Math.random() < 0.5 ? 'V' : 'H',
+      engine: Difficulty.Medium,
+    })
+    setView('tournament-game')
+  }
+  const finishBotMatch = (winner: Player | 'draw') => {
+    if (botMatch) {
+      // A draw advances the human (single elimination needs someone through).
+      const humanWon = winner === 'draw' || winner === botMatch.side
+      void reportBotResult(botMatch.matchId, humanWon ? botMatch.myId : botMatch.botId)
+    }
+    setBotMatch(null)
+    setView('tournament-lobby')
   }
   // Leaving an online game returns to its tournament bracket if it came from one,
   // otherwise to the menu.
@@ -213,6 +244,22 @@ export default function App() {
         onLeave={() => setView('tournament-hub')}
         onPlayMatch={playTournamentMatch}
         onWatchMatch={watchTournamentMatch}
+        onPlayBot={playTournamentBotMatch}
+      />
+    )
+  } else if (view === 'tournament-game' && botMatch) {
+    screen = (
+      <GameScreen
+        key={`tbot-${botMatch.matchId}`}
+        mode="ai"
+        initialDifficulty={botMatch.engine}
+        initialHumanColor={botMatch.side}
+        onBack={() => {
+          setBotMatch(null)
+          setView('tournament-lobby')
+        }}
+        onShowRules={() => setView('rules')}
+        onTournamentEnd={finishBotMatch}
       />
     )
   } else if (view === 'online' && session) {

@@ -33,6 +33,9 @@ interface GameScreenProps {
   onBack: () => void
   /** Open the standalone rules / how-to-play page. */
   onShowRules: () => void
+  /** Tournament bot match: play a single game, then report the winner and return
+   *  to the bracket. When set, the screen runs as one match (no New Game / undo). */
+  onTournamentEnd?: (winner: Player | 'draw') => void
 }
 
 const playerName = (p: Player): string =>
@@ -65,6 +68,7 @@ export function GameScreen({
   onChangeOpponent,
   onBack,
   onShowRules,
+  onTournamentEnd,
 }: GameScreenProps) {
   const [state, setState] = useState<GameState>(createInitialState)
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty ?? Difficulty.Medium)
@@ -349,7 +353,7 @@ export function GameScreen({
       </div>
 
       <div className="controls">
-        {mode === 'ai' && (
+        {mode === 'ai' && !onTournamentEnd && (
           <div className="ai-setup-bar">
             <span className="ai-setup-info">
               <span className="ai-setup-vs">vs {engineLabel(difficulty)}</span>
@@ -407,27 +411,40 @@ export function GameScreen({
         )}
 
         <div className="buttons">
-          <button type="button" className="btn btn-primary" onClick={newGame}>
-            New Game
-          </button>
-          {mode === 'ai' && isAdmin && state.winner === null && (
+          {onTournamentEnd ? (
             <button
               type="button"
-              className="btn"
-              onClick={handedOver ? takeControlBack : handToAI}
+              className="btn btn-primary"
+              disabled={state.winner === null}
+              onClick={() => state.winner !== null && onTournamentEnd(state.winner)}
             >
-              {handedOver ? 'Take control back' : 'Hand to AI'}
+              {state.winner !== null ? 'Back to the bracket →' : 'Finish the match to continue'}
             </button>
-          )}
-          {mode === 'pvp' && (
-            <button
-              type="button"
-              className="btn"
-              onClick={undo}
-              disabled={history.length === 0}
-            >
-              Undo
-            </button>
+          ) : (
+            <>
+              <button type="button" className="btn btn-primary" onClick={newGame}>
+                New Game
+              </button>
+              {mode === 'ai' && isAdmin && state.winner === null && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={handedOver ? takeControlBack : handToAI}
+                >
+                  {handedOver ? 'Take control back' : 'Hand to AI'}
+                </button>
+              )}
+              {mode === 'pvp' && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={undo}
+                  disabled={history.length === 0}
+                >
+                  Undo
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -13,6 +13,10 @@ interface TournamentBracketProps {
   meId: string | null
   onPlay: (gameCode: string, role: 'host' | 'guest') => void
   onWatch: (gameCode: string) => void
+  /** Play a human-vs-bot match locally (no online game). */
+  onPlayBot: (matchId: number, myId: string, botId: string) => void
+  /** Instant-resolve a human-vs-bot match (random winner) without playing it. */
+  onSimulate: (matchId: number, myId: string, botId: string) => void
 }
 
 const Trophy = (
@@ -42,6 +46,8 @@ export function TournamentBracket({
   meId,
   onPlay,
   onWatch,
+  onPlayBot,
+  onSimulate,
 }: TournamentBracketProps) {
   const pMap = new Map(players.map((p) => [p.user_id, p]))
   const nameOf = (id: string | null): string | null => (id ? pMap.get(id)?.display_name || 'Player' : null)
@@ -51,12 +57,28 @@ export function TournamentBracket({
   const total = rounds.length
   const champion = tournament.status === 'complete' ? tournament.champion : null
 
-  // The viewer's own live match, if any (drives the top call-to-action).
+  // Bots carry no real game; a human-vs-bot match sits 'ready' with no game_code.
+  const botIds = new Set(players.filter((p) => p.is_bot).map((p) => p.user_id))
+  const oppOf = (m: TournamentMatch): string | null =>
+    m.player_a === meId ? m.player_b : m.player_a
+
+  // The viewer's actionable match (drives the top call-to-action): either a live
+  // online game, or a ready human-vs-bot match they can play locally.
   const myLive = !champion
     ? matches.find(
         (m) => m.status === 'playing' && !!m.game_code && (m.player_a === meId || m.player_b === meId),
       )
     : undefined
+  const myBot =
+    !champion && meId && !myLive
+      ? matches.find(
+          (m) =>
+            m.status === 'ready' &&
+            !m.game_code &&
+            (m.player_a === meId || m.player_b === meId) &&
+            botIds.has(oppOf(m) ?? ''),
+        )
+      : undefined
 
   const seat = (id: string | null, win: boolean, lose: boolean) => {
     const name = nameOf(id)
@@ -90,10 +112,34 @@ export function TournamentBracket({
           <span className="tbk-cta-dot" aria-hidden />
           <span className="tbk-cta-text">
             <strong>Your match is live</strong>
-            <span>vs {nameOf(myLive.player_a === meId ? myLive.player_b : myLive.player_a)}</span>
+            <span>vs {nameOf(oppOf(myLive))}</span>
           </span>
           <span className="tbk-cta-go">Play →</span>
         </button>
+      )}
+
+      {myBot && meId && (
+        <>
+          <button
+            type="button"
+            className="tbk-cta"
+            onClick={() => onPlayBot(myBot.id, meId, oppOf(myBot) as string)}
+          >
+            <span className="tbk-cta-dot" aria-hidden />
+            <span className="tbk-cta-text">
+              <strong>Your match</strong>
+              <span>vs {nameOf(oppOf(myBot))}</span>
+            </span>
+            <span className="tbk-cta-go">Play →</span>
+          </button>
+          <button
+            type="button"
+            className="tbk-sim"
+            onClick={() => onSimulate(myBot.id, meId, oppOf(myBot) as string)}
+          >
+            or simulate it
+          </button>
+        </>
       )}
 
       <div className="tbk-scroll">
@@ -107,26 +153,36 @@ export function TournamentBracket({
                   .map((m) => {
                     const mine = m.player_a === meId || m.player_b === meId
                     const live = m.status === 'playing' && !!m.game_code
+                    const myBotHere =
+                      mine && m.status === 'ready' && !m.game_code && botIds.has(oppOf(m) ?? '')
                     const done = m.status === 'done'
+                    const clickable = live || myBotHere
                     const onClick = live
                       ? () =>
                           mine
                             ? onPlay(m.game_code as string, m.player_a === meId ? 'host' : 'guest')
                             : onWatch(m.game_code as string)
-                      : undefined
+                      : myBotHere
+                        ? () => onPlayBot(m.id, meId as string, oppOf(m) as string)
+                        : undefined
                     return (
                       <div
                         key={m.id}
-                        className={`tbk-match tbk-${m.status}${mine ? ' tbk-mine' : ''}${live ? ' tbk-clickable' : ''}`}
+                        className={`tbk-match tbk-${m.status}${mine ? ' tbk-mine' : ''}${live || myBotHere ? ' tbk-playing' : ''}${clickable ? ' tbk-clickable' : ''}`}
                         onClick={onClick}
-                        role={live ? 'button' : undefined}
-                        tabIndex={live ? 0 : undefined}
+                        role={clickable ? 'button' : undefined}
+                        tabIndex={clickable ? 0 : undefined}
                       >
                         <div className="tbk-bar">
                           {live ? (
                             <span className="tbk-live">
                               <span className="tbk-livedot" aria-hidden />
                               {mine ? 'Your match' : 'Live · watch'}
+                            </span>
+                          ) : myBotHere ? (
+                            <span className="tbk-live">
+                              <span className="tbk-livedot" aria-hidden />
+                              Your match
                             </span>
                           ) : done ? (
                             <span className="tbk-played">Played</span>

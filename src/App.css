@@ -1980,6 +1980,71 @@
   letter-spacing: 0.08em;
   color: var(--accent);
 }
+/* Bots read as non-human: a muted grey avatar + a small "bot" tag. */
+.tl-ava-bot {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.tl-bot-tag {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-border);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.tl-bot-remove {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.tl-bot-remove:hover {
+  color: #d75a6a;
+  border-color: #d75a6a;
+}
+/* The host fills an open seat by clicking it. */
+.tl-add-bot {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.tl-add-bot .tl-ava-empty {
+  color: var(--accent-2-soft);
+  font-size: 1.1rem;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.tl-add-bot .tl-slot-name {
+  color: var(--accent-2-soft);
+  font-style: normal;
+  transition: color 0.15s ease;
+}
+.tl-add-bot:hover .tl-ava-empty {
+  border-style: solid;
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+.tl-add-bot:hover .tl-slot-name {
+  color: var(--accent-2);
+}
 .tl-start {
   width: 100%;
 }
@@ -2259,6 +2324,21 @@
   font-weight: 600;
   color: var(--accent);
   white-space: nowrap;
+}
+/* "or simulate it" — instant-resolve a bot match instead of playing it. */
+.tbk-sim {
+  align-self: center;
+  margin-top: -0.6rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tbk-sim:hover {
+  color: var(--accent-2-soft);
 }
 
 /* Champion moment */
