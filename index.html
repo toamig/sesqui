@@ -96,28 +96,66 @@
         "publisher": { "@type": "Person", "name": "Miguel" }
       }
     </script>
+    <!-- Pre-app splash: real, crawlable game copy in the initial HTML (so search
+         engines see substantial content before running any JS) that doubles as a
+         branded loading state. React replaces #root's contents when it mounts. -->
+    <style>
+      body { margin: 0; background: #15152a; }
+      .app-splash {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem 1.25rem;
+        color: #e8e8f0;
+      }
+      .app-splash h1 {
+        margin: 0;
+        font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+        font-size: clamp(3rem, 12vw, 5rem);
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        color: #fff;
+      }
+      .app-splash p { margin: 0.6rem 0 0; font-family: system-ui, sans-serif; }
+      .app-splash .tag { color: #a9a9c0; }
+      .app-splash .lede {
+        max-width: 34rem;
+        margin-top: 1.6rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: #c9c9d8;
+      }
+      .app-splash .load {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #6f6f8c;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <!-- Crawler / no-JavaScript fallback: real, indexable text describing the
-         game for engines that don't run JS (the app itself needs JS to play). -->
-    <noscript>
-      <main style="max-width: 42rem; margin: 3rem auto; padding: 0 1.25rem; font-family: system-ui, sans-serif; line-height: 1.5; color: #e8e8f0;">
+    <div id="root">
+      <div class="app-splash">
         <h1>Sesqui</h1>
-        <p>
-          Sesqui is a free, two-player connection strategy game played on an 8x8
-          board. Black links the top edge to the bottom; White links the left
-          edge to the right. The first player to complete an unbroken chain
-          between their own two edges wins.
+        <p class="tag">A connection game of two directions</p>
+        <p class="lede">
+          A free two-player connection strategy game on an 8x8 board. Black links
+          the top edge to the bottom; White links the left edge to the right. The
+          first to complete an unbroken chain between their own two edges wins.
+          Play a friend online, take on four tiers of AI, or run knockout
+          tournaments.
         </p>
-        <p>
-          Play a friend online with a room code, take on four tiers of AI (from
-          a random mover to a trained neural net), run knockout tournaments, or
-          watch the engines battle it out. It runs in any browser, free, with no
-          download.
-        </p>
-        <p>Sesqui needs JavaScript to play. Please enable JavaScript in your browser.</p>
-      </main>
+        <p class="load">Loading</p>
+      </div>
+    </div>
+    <noscript>
+      <p style="text-align: center; font-family: system-ui, sans-serif; color: #c9c9d8; padding: 1rem;">
+        Sesqui needs JavaScript to play. Please enable it in your browser.
+      </p>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
