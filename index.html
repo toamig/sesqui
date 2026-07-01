@@ -18,11 +18,13 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Sesqui" />
-    <title>Sesqui</title>
+    <title>Sesqui: a free online connection strategy board game</title>
     <meta
       name="description"
-      content="A two-player connection strategy game on an 8x8 board. Black links top to bottom, White links left to right. Play a friend, take on four tiers of AI, or watch the engines battle it out."
+      content="Sesqui is a free two-player connection strategy game on an 8x8 board. Black links top to bottom, White links left to right. Play a friend online, face four tiers of AI, or run knockout tournaments. No download."
     />
+    <link rel="canonical" href="https://migueltechlead.pt/sesqui/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <!-- Social link preview (Open Graph + Twitter). Crawlers need absolute
          URLs, so these point at the deployed /sesqui/ path. og.jpg is a
          1200x630 share card shipped alongside the app. -->
@@ -67,9 +69,56 @@
         } catch (e) {}
       })()
     </script>
+    <!-- Structured data: tell search engines this is a free, browser-playable
+         two-player strategy game (helps it surface for game-related queries). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Sesqui",
+        "alternateName": "Sesqui board game",
+        "url": "https://migueltechlead.pt/sesqui/",
+        "image": "https://migueltechlead.pt/sesqui/og.jpg",
+        "description": "Sesqui is a two-player connection strategy game on an 8x8 board. Black links top to bottom, White links left to right. Play a friend online, take on four tiers of AI, or run knockout tournaments.",
+        "genre": ["Abstract strategy", "Board game", "Connection game"],
+        "gamePlatform": ["Web browser", "Android"],
+        "playMode": ["SinglePlayer", "MultiPlayer"],
+        "applicationCategory": "Game",
+        "operatingSystem": "Web browser, Android",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "publisher": { "@type": "Person", "name": "Miguel" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Crawler / no-JavaScript fallback: real, indexable text describing the
+         game for engines that don't run JS (the app itself needs JS to play). -->
+    <noscript>
+      <main style="max-width: 42rem; margin: 3rem auto; padding: 0 1.25rem; font-family: system-ui, sans-serif; line-height: 1.5; color: #e8e8f0;">
+        <h1>Sesqui</h1>
+        <p>
+          Sesqui is a free, two-player connection strategy game played on an 8x8
+          board. Black links the top edge to the bottom; White links the left
+          edge to the right. The first player to complete an unbroken chain
+          between their own two edges wins.
+        </p>
+        <p>
+          Play a friend online with a room code, take on four tiers of AI (from
+          a random mover to a trained neural net), run knockout tournaments, or
+          watch the engines battle it out. It runs in any browser, free, with no
+          download.
+        </p>
+        <p>Sesqui needs JavaScript to play. Please enable JavaScript in your browser.</p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
